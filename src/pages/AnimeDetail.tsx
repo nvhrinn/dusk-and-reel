@@ -5,10 +5,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Play, ArrowLeft, Subtitles, Mic, Clock, Film } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useState } from "react";
 
 const AnimeDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [showFullDesc, setShowFullDesc] = useState(false);
 
   const { data: info, isLoading: infoLoading } = useQuery({
     queryKey: ["info", id],
@@ -105,6 +107,11 @@ const AnimeDetail = () => {
                   <Clock className="w-3 h-3 mr-1" /> {info.duration}
                 </Badge>
               )}
+              {info.totalEp && (
+                <Badge variant="outline">
+                  {info.totalEp} Episodes
+                </Badge>
+              )}
             </div>
 
             {info.genre?.length > 0 && (
@@ -118,9 +125,23 @@ const AnimeDetail = () => {
             )}
 
             {info.description && (
-              <p className="text-sm text-muted-foreground mt-4 leading-relaxed max-w-2xl line-clamp-4">
-                {info.description}
-              </p>
+              <div className="mt-4">
+                <p
+                  className={`text-sm text-muted-foreground leading-relaxed max-w-2xl ${
+                    !showFullDesc ? "line-clamp-4" : ""
+                  }`}
+                >
+                  {info.description}
+                </p>
+                {info.description.length > 200 && (
+                  <button
+                    onClick={() => setShowFullDesc(!showFullDesc)}
+                    className="text-primary text-xs mt-1 hover:underline"
+                  >
+                    {showFullDesc ? "Show less" : "Read more"}
+                  </button>
+                )}
+              </div>
             )}
 
             {episodes && episodes.length > 0 && (
@@ -152,7 +173,7 @@ const AnimeDetail = () => {
                 <button
                   key={ep.epId}
                   onClick={() => navigate(`/watch/${watchId}?ep=${ep.epId}`)}
-                  className="h-12 rounded-md bg-secondary hover:bg-surface-hover border border-border text-sm font-medium transition-colors flex items-center justify-center gap-1 group"
+                  className="h-12 rounded-md bg-secondary hover:bg-accent border border-border text-sm font-medium transition-colors flex items-center justify-center gap-1 group"
                 >
                   <span className="text-muted-foreground group-hover:text-primary transition-colors">
                     {ep.order}

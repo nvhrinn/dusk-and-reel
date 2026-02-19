@@ -61,9 +61,18 @@ export interface StreamSource {
 
 export interface StreamData {
   sources: StreamSource[];
+  embedUrl?: string;
   tracks: { file: string; label: string; kind: string }[];
   intro: { start: number; end: number };
   outro: { start: number; end: number };
+}
+
+export interface HomeData {
+  slides: AnimeSlide[];
+  trending: AnimeTrending[];
+  latestEpisodes: AnimeSearchResult[];
+  topAiring: AnimeSearchResult[];
+  popular: AnimeSearchResult[];
 }
 
 async function callApi<T>(body: Record<string, unknown>): Promise<T> {
@@ -73,7 +82,7 @@ async function callApi<T>(body: Record<string, unknown>): Promise<T> {
 }
 
 export const aniwatchApi = {
-  home: () => callApi<{ slides: AnimeSlide[]; trending: AnimeTrending[] }>({ action: "home" }),
+  home: () => callApi<HomeData>({ action: "home" }),
   search: (query: string, page = 1) => callApi<{ results: AnimeSearchResult[] }>({ action: "search", query, page }),
   info: (id: string) => callApi<AnimeInfo>({ action: "info", id }),
   episodes: (id: string) => callApi<Episode[]>({ action: "episodes", id }),
