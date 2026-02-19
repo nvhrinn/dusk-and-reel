@@ -16,6 +16,21 @@ async function fetchPage(url: string) {
   return cheerio.load(html);
 }
 
+function parseAnimeCard($: cheerio.CheerioAPI, el: cheerio.Element) {
+  return {
+    name: $(el).find(".film-name .dynamic-name").text().trim(),
+    jname: $(el).find(".film-name .dynamic-name").attr("data-jname") || "",
+    format: $(el).find(".fd-infor .fdi-item").first().text().trim(),
+    duration: $(el).find(".fd-infor .fdi-item").last().text().trim(),
+    id: $(el).find(".film-name a").attr("href")?.replace("/", "") || "",
+    sub: $(el).find(".tick-sub").text().trim(),
+    dub: $(el).find(".tick-dub").text().trim() || "0",
+    totalEp: $(el).find(".tick-eps").text().trim() || null,
+    image: $(el).find(".film-poster img").attr("data-src") || $(el).find("img").attr("data-src"),
+    rating: $(el).find(".tick-rate").text().trim() || null,
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -43,12 +58,51 @@ Deno.serve(async (req) => {
           trending.push({
             name: $(el).find(".dynamic-name").text().trim(),
             rank: $(el).find(".number span").text(),
-            id: $(el).find("a").attr("href")?.split("/")[1],
+            id: $(el).find("a").attr("href")?.replace("/", ""),
             image: $(el).find("img").attr("data-src"),
           });
         });
 
-        result = { slides, trending };
+        // Scrape additional sections
+        const latestEpisodes: unknown[] = [];
+        const popular: unknown[] = [];
+        const topAiring: unknown[] = [];
+
+        // Latest Episode section
+        $("section.block_area.block_area_home:has(.cat-heading:contains('Latest Episode'))").find(".flw-item").each((_: number, el: cheerio.Element) => {
+          latestEpisodes.push(parseAnimeCard($, el));
+        });
+
+        // If that didn't work, try a more general approach
+        if (latestEpisodes.length === 0) {
+          $(".anif-block-ul").first().find(".flw-item").each((_: number, el: cheerio.Element) => {
+            latestEpisodes.push(parseAnimeCard($, el));
+          });
+        }
+
+        // Top Airing section
+        $("section.block_area.block_area_home:has(.cat-heading:contains('Top Airing'))").find(".flw-item").each((_: number, el: cheerio.Element) => {
+          topAiring.push(parseAnimeCard($, el));
+        });
+
+        if (topAiring.length === 0) {
+          $(".anif-block-ul").eq(1).find(".flw-item").each((_: number, el: cheerio.Element) => {
+            topAiring.push(parseAnimeCard($, el));
+          });
+        }
+
+        // Most Popular section
+        $("section.block_area.block_area_home:has(.cat-heading:contains('Most Popular'))").find(".flw-item").each((_: number, el: cheerio.Element) => {
+          popular.push(parseAnimeCard($, el));
+        });
+
+        if (popular.length === 0) {
+          $(".anif-block-ul").eq(2).find(".flw-item").each((_: number, el: cheerio.Element) => {
+            popular.push(parseAnimeCard($, el));
+          });
+        }
+
+        result = { slides, trending, latestEpisodes, topAiring, popular };
         break;
       }
 
@@ -58,18 +112,7 @@ Deno.serve(async (req) => {
         const results: unknown[] = [];
 
         $(".flw-item").each((_: number, el: cheerio.Element) => {
-          results.push({
-            name: $(el).find(".dynamic-name").text(),
-            jname: $(el).find(".dynamic-name").attr("data-jname"),
-            format: $(el).find(".fdi-item").eq(0).text(),
-            duration: $(el).find(".fdi-item").eq(1).text(),
-            id: $(el).find(".film-name a").attr("href")?.split("/")[1],
-            sub: $(el).find(".tick-sub").text(),
-            dub: $(el).find(".tick-dub").text() || "0",
-            totalEp: $(el).find(".tick-eps").text() || null,
-            image: $(el).find("img").attr("data-src"),
-            rating: $(el).find(".tick-rate").text() || null,
-          });
+          results.push(parseAnimeCard($, el));
         });
 
         result = { results };
@@ -78,20 +121,86 @@ Deno.serve(async (req) => {
 
       case 'info': {
         const $ = await fetchPage(`${BASE}/${id}`);
+        
+        // Better selectors for anime info
+        const aniDetail = $(".anisc-detail");
+        const filmStats = $(".film-stats");
+        
+        // Get sub/dub/ep counts from the stats items specifically
+        const tickItems = filmStats.find(".tick .tick-item");
+        let pg = "", quality = "", sub = "", dub = "", totalEp = "";
+        
+        tickItems.each((_: number, el: cheerio.Element) => {
+          const text = $(el).text().trim();
+          const classes = $(el).attr("class") || "";
+          if (classes.includes("tick-pg")) pg = text;
+          else if (classes.includes("tick-quality")) quality = text;
+          else if (classes.includes("tick-sub")) sub = text;
+          else if (classes.includes("tick-dub")) dub = text;
+          else if (classes.includes("tick-eps")) totalEp = text;
+        });
+
+        // Get format and duration from item-head/item-title pairs
+        let format = "", duration = "";
+        $(".item-head").each((_: number, el: cheerio.Element) => {
+          const label = $(el).text().trim().toLowerCase();
+          const value = $(el).next(".name").text().trim();
+          if (label.includes("type")) format = value;
+          else if (label.includes("duration")) duration = value;
+        });
+
+        // Fallback: try from spe-infos
+        if (!format || !duration) {
+          $(".spe-info").each((_: number, el: cheerio.Element) => {
+            const label = $(el).find("small, .spe-head, strong, b").text().trim().toLowerCase();
+            const value = $(el).find("a, span").last().text().trim();
+            if (!format && (label.includes("type") || label.includes("format"))) format = value;
+            if (!duration && label.includes("duration")) duration = value;
+          });
+        }
+
+        const description = aniDetail.find(".film-description .text").text().trim() ||
+          $(".film-description .text").text().trim() ||
+          $(".text").first().text().trim();
+
+        // Remove duplicate descriptions (site often has them doubled)
+        const halfLen = Math.floor(description.length / 2);
+        const cleanDesc = description.slice(0, halfLen) === description.slice(halfLen).trim()
+          ? description.slice(0, halfLen).trim()
+          : description;
+
+        const genres: string[] = [];
+        $(".item-list a[href*='genre']").each((_: number, el: cheerio.Element) => {
+          genres.push($(el).text().trim());
+        });
+
+        // Fallback genre extraction
+        if (genres.length === 0) {
+          $(".item-title a").each((_: number, el: cheerio.Element) => {
+            const href = $(el).attr("href") || "";
+            if (href.includes("genre")) {
+              genres.push($(el).text().trim());
+            }
+          });
+        }
+
         result = {
-          name: $(".film-name.dynamic-name").text().trim(),
-          jname: $(".dynamic-name").attr("data-jname"),
-          image: $(".film-poster img").attr("src"),
-          description: $(".text").text().trim(),
-          pg: $(".tick-pg").text(),
-          quality: $(".tick-quality").text(),
-          sub: $(".tick-sub").text(),
-          dub: $(".tick-dub").text() || null,
-          totalEp: $(".tick-eps").text() || null,
-          format: $(".item").eq(0).text(),
-          duration: $(".item").eq(1).text(),
-          genre: $(".item-list a").map((_: number, el: cheerio.Element) => $(el).text()).get(),
-          id: $(".film-buttons a").attr("href")?.split("/watch/")[1] || null,
+          name: aniDetail.find(".film-name.dynamic-name").text().trim() ||
+            $(".film-name.dynamic-name").text().trim(),
+          jname: aniDetail.find(".dynamic-name").attr("data-jname") ||
+            $(".dynamic-name").attr("data-jname"),
+          image: $(".film-poster img").attr("src") || $(".film-poster img").attr("data-src"),
+          description: cleanDesc,
+          pg,
+          quality,
+          sub,
+          dub: dub || null,
+          totalEp: totalEp || null,
+          format,
+          duration,
+          genre: genres,
+          id: $(".film-buttons a").attr("href")?.split("/watch/")[1] ||
+            $(".btn-play").attr("href")?.replace("/watch/", "") || null,
         };
         break;
       }
@@ -153,11 +262,29 @@ Deno.serve(async (req) => {
 
         if (!srcData?.link) throw new Error("Source link not found");
 
-        const match = srcData.link.match(/\/e-1\/(.*?)\?/);
-        if (!match) throw new Error("Invalid MegaCloud link");
+        // Try to extract from MegaCloud-style link
+        const match = srcData.link.match(/\/e(?:-1)?\/(.*?)(?:\?|$)/);
+        if (!match) {
+          // For non-MegaCloud sources, try to get the direct embed URL
+          // Return a fallback with the embed link for iframe usage
+          result = {
+            sources: [],
+            embedUrl: srcData.link,
+            tracks: [],
+            intro: { start: 0, end: 0 },
+            outro: { start: 0, end: 0 },
+          };
+          break;
+        }
 
         const hash = match[1];
-        const videoUrl = `https://megacloud.blog/embed-2/v3/e-1/${hash}?k=1`;
+        
+        // Determine the correct MegaCloud endpoint
+        const isMegaCloud = srcData.link.includes("megacloud") || srcData.link.includes("e-1");
+        const embedBase = isMegaCloud ? "megacloud.blog" : "megacloud.blog";
+        const embedPath = isMegaCloud ? "embed-2/v3/e-1" : "embed-2/v3/e-1";
+        
+        const videoUrl = `https://${embedBase}/${embedPath}/${hash}?k=1`;
 
         // Extract from MegaCloud
         const megaHeaders = {
@@ -184,7 +311,7 @@ Deno.serve(async (req) => {
 
         const videoId = videoUrl.split("/").pop()?.split("?")[0];
 
-        const sourcesUrl = `https://megacloud.blog/embed-2/v3/e-1/getSources?id=${videoId}&_k=${nonce}`;
+        const sourcesUrl = `https://${embedBase}/${embedPath}/getSources?id=${videoId}&_k=${nonce}`;
         const sourcesRes = await fetch(sourcesUrl, { headers: megaHeaders });
         const sourcesData = await sourcesRes.json();
 

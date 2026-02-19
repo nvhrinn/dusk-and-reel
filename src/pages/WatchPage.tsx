@@ -4,7 +4,7 @@ import { aniwatchApi } from "@/lib/api";
 import VideoPlayer from "@/components/VideoPlayer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Subtitles, Mic } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 const WatchPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -43,10 +43,22 @@ const WatchPage = () => {
     queryKey: ["watch", selectedSourceId],
     queryFn: () => aniwatchApi.watch(selectedSourceId!),
     enabled: !!selectedSourceId,
+    retry: 1,
   });
 
   const currentEp = episodes?.find((e) => e.epId === epId);
   const streamUrl = stream?.sources?.[0]?.url;
+
+  // Try next server on error
+  const handlePlayerError = useCallback(() => {
+    if (!servers) return;
+    const list = audioType === "sub" ? servers.sub : servers.dub;
+    if (!list) return;
+    const currentIdx = list.findIndex((s) => s.sourceId === selectedSourceId);
+    if (currentIdx < list.length - 1) {
+      setSelectedSourceId(list[currentIdx + 1].sourceId);
+    }
+  }, [servers, audioType, selectedSourceId]);
 
   return (
     <div className="min-h-screen pt-14">
@@ -62,7 +74,22 @@ const WatchPage = () => {
         {streamLoading || serversLoading ? (
           <Skeleton className="w-full aspect-video rounded-lg" />
         ) : streamUrl ? (
-          <VideoPlayer src={streamUrl} tracks={stream?.tracks} />
+          <VideoPlayer
+            src={streamUrl}
+            tracks={stream?.tracks}
+            intro={stream?.intro}
+            outro={stream?.outro}
+            onError={handlePlayerError}
+          />
+        ) : stream?.embedUrl ? (
+          <div className="w-full aspect-video rounded-lg overflow-hidden">
+            <iframe
+              src={stream.embedUrl}
+              className="w-full h-full"
+              allowFullScreen
+              allow="autoplay; encrypted-media"
+            />
+          </div>
         ) : (
           <div className="w-full aspect-video rounded-lg bg-secondary flex items-center justify-center">
             <p className="text-muted-foreground">Select a server to start watching</p>
