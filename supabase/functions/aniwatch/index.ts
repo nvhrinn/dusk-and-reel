@@ -36,6 +36,50 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // GET = HLS proxy mode (bypass CDN CORS restrictions)
+  if (req.method === 'GET') {
+    try {
+      const reqUrl = new URL(req.url);
+      const targetUrl = reqUrl.searchParams.get('url');
+      if (!targetUrl) {
+        return new Response('Missing url param', { status: 400, headers: corsHeaders });
+      }
+
+      const proxyRes = await fetch(targetUrl, {
+        headers: {
+          'User-Agent': HEADERS['User-Agent'],
+          'Referer': 'https://megacloud.blog/',
+          'Origin': 'https://megacloud.blog',
+        },
+      });
+
+      const contentType = proxyRes.headers.get('content-type') || 'application/octet-stream';
+
+      // For m3u8 playlists, rewrite relative URLs to absolute
+      if (contentType.includes('mpegurl') || targetUrl.endsWith('.m3u8')) {
+        let text = await proxyRes.text();
+        const baseUrl = targetUrl.substring(0, targetUrl.lastIndexOf('/') + 1);
+        // Replace relative paths (lines not starting with # or http) with absolute URLs
+        text = text.replace(/^(?!#)(?!https?:\/\/)(.+)$/gm, (match) => {
+          return baseUrl + match.trim();
+        });
+        return new Response(text, {
+          status: proxyRes.status,
+          headers: { ...corsHeaders, 'Content-Type': contentType },
+        });
+      }
+
+      const body = await proxyRes.arrayBuffer();
+      return new Response(body, {
+        status: proxyRes.status,
+        headers: { ...corsHeaders, 'Content-Type': contentType },
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Proxy error';
+      return new Response(msg, { status: 502, headers: corsHeaders });
+    }
+  }
+
   try {
     const { action, query, page, id, episodeId, sourceId } = await req.json();
 
