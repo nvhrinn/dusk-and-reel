@@ -42,21 +42,23 @@ const VideoPlayer = ({ src, tracks, intro, outro, onError }: VideoPlayerProps) =
     setError(false);
 
     if (Hls.isSupported()) {
+      // Custom loader that proxies all requests through our edge function
+      class ProxyLoader extends Hls.DefaultConfig.loader {
+        load(context: any, config: any, callbacks: any) {
+          // Rewrite the URL to go through our proxy
+          context.url = `${proxyBase}${encodeURIComponent(context.url)}`;
+          super.load(context, config, callbacks);
+        }
+      }
+
       const hls = new Hls({
         maxBufferLength: 30,
         maxMaxBufferLength: 60,
-        xhrSetup: (xhr, url) => {
-          // Route all HLS requests through our proxy to bypass CORS
-          const proxiedUrl = `${proxyBase}${encodeURIComponent(url)}`;
-          xhr.open('GET', proxiedUrl, true);
-          xhr.withCredentials = false;
-        },
+        loader: ProxyLoader,
       });
       hlsRef.current = hls;
 
-      // Load the source URL through proxy as well
-      const proxiedSrc = `${proxyBase}${encodeURIComponent(src)}`;
-      hls.loadSource(proxiedSrc);
+      hls.loadSource(src);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         video.play().catch(() => {});
