@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import Hls from "hls.js";
 import { SkipForward, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,12 @@ const VideoPlayer = ({ src, tracks, intro, outro, onError }: VideoPlayerProps) =
   const hasIntro = intro && intro.end > intro.start && intro.end > 0;
   const hasOutro = outro && outro.end > outro.start && outro.end > 0;
 
+  // Build proxy base URL for HLS requests
+  const proxyBase = useMemo(() => {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    return `${supabaseUrl}/functions/v1/aniwatch?url=`;
+  }, []);
+
   const handleTimeUpdate = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -39,12 +45,18 @@ const VideoPlayer = ({ src, tracks, intro, outro, onError }: VideoPlayerProps) =
       const hls = new Hls({
         maxBufferLength: 30,
         maxMaxBufferLength: 60,
-        xhrSetup: (xhr) => {
+        xhrSetup: (xhr, url) => {
+          // Route all HLS requests through our proxy to bypass CORS
+          const proxiedUrl = `${proxyBase}${encodeURIComponent(url)}`;
+          xhr.open('GET', proxiedUrl, true);
           xhr.withCredentials = false;
         },
       });
       hlsRef.current = hls;
-      hls.loadSource(src);
+
+      // Load the source URL through proxy as well
+      const proxiedSrc = `${proxyBase}${encodeURIComponent(src)}`;
+      hls.loadSource(proxiedSrc);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         video.play().catch(() => {});
@@ -63,6 +75,7 @@ const VideoPlayer = ({ src, tracks, intro, outro, onError }: VideoPlayerProps) =
         }
       });
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      // Safari native HLS - can't proxy easily, try direct
       video.src = src;
       video.addEventListener("loadedmetadata", () => {
         video.play().catch(() => {});
@@ -77,7 +90,7 @@ const VideoPlayer = ({ src, tracks, intro, outro, onError }: VideoPlayerProps) =
       hlsRef.current?.destroy();
       hlsRef.current = null;
     };
-  }, [src, onError]);
+  }, [src, onError, proxyBase]);
 
   const skipIntro = () => {
     if (videoRef.current && intro) videoRef.current.currentTime = intro.end;
