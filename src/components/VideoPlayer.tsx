@@ -53,8 +53,9 @@ const VideoPlayer = ({ src, tracks, intro, outro, onError }: VideoPlayerProps) =
         if (data.fatal) {
           console.error("HLS fatal error:", data.type, data.details);
           if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-            // Try to recover once
             hls.startLoad();
+          } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+            hls.recoverMediaError();
           } else {
             setError(true);
             onError?.();

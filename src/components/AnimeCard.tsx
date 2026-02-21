@@ -34,11 +34,6 @@ const AnimeCard = ({ anime, index = 0 }: AnimeCardProps) => {
             <Play className="w-5 h-5 text-primary-foreground ml-0.5" />
           </div>
         </div>
-        {"rank" in anime && (
-          <div className="absolute top-2 left-2 text-3xl font-display font-bold text-gradient">
-            #{anime.rank}
-          </div>
-        )}
         {isSearch && (
           <div className="absolute top-2 right-2 flex gap-1">
             {searchAnime.sub && (

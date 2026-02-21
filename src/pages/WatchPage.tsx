@@ -26,15 +26,23 @@ const WatchPage = () => {
     enabled: !!epId,
   });
 
-  // Auto-select first server
+  // Filter to megacloud only
+  const megacloudServers = servers
+    ? {
+        sub: servers.sub?.filter((s) => s.server === "megacloud") || [],
+        dub: servers.dub?.filter((s) => s.server === "megacloud") || [],
+      }
+    : null;
+
+  // Auto-select megacloud server
   useEffect(() => {
-    if (servers) {
-      const list = audioType === "sub" ? servers.sub : servers.dub;
+    if (megacloudServers) {
+      const list = audioType === "sub" ? megacloudServers.sub : megacloudServers.dub;
       if (list?.length) {
         setSelectedSourceId(list[0].sourceId);
-      } else if (servers.sub?.length) {
+      } else if (megacloudServers.sub?.length) {
         setAudioType("sub");
-        setSelectedSourceId(servers.sub[0].sourceId);
+        setSelectedSourceId(megacloudServers.sub[0].sourceId);
       }
     }
   }, [servers, audioType]);
@@ -49,16 +57,10 @@ const WatchPage = () => {
   const currentEp = episodes?.find((e) => e.epId === epId);
   const streamUrl = stream?.sources?.[0]?.url;
 
-  // Try next server on error
+  // No fallback - megacloud only
   const handlePlayerError = useCallback(() => {
-    if (!servers) return;
-    const list = audioType === "sub" ? servers.sub : servers.dub;
-    if (!list) return;
-    const currentIdx = list.findIndex((s) => s.sourceId === selectedSourceId);
-    if (currentIdx < list.length - 1) {
-      setSelectedSourceId(list[currentIdx + 1].sourceId);
-    }
-  }, [servers, audioType, selectedSourceId]);
+    // Could retry same source
+  }, []);
 
   return (
     <div className="min-h-screen pt-14">
@@ -105,9 +107,9 @@ const WatchPage = () => {
         )}
 
         {/* Audio type toggle */}
-        {servers && (
+        {megacloudServers && (
           <div className="flex gap-2 mt-4">
-            {servers.sub?.length > 0 && (
+            {megacloudServers.sub?.length > 0 && (
               <button
                 onClick={() => setAudioType("sub")}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -119,7 +121,7 @@ const WatchPage = () => {
                 <Subtitles className="w-4 h-4" /> Sub
               </button>
             )}
-            {servers.dub?.length > 0 && (
+            {megacloudServers.dub?.length > 0 && (
               <button
                 onClick={() => setAudioType("dub")}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -134,22 +136,12 @@ const WatchPage = () => {
           </div>
         )}
 
-        {/* Server list */}
-        {servers && (
-          <div className="flex flex-wrap gap-2 mt-3">
-            {(audioType === "sub" ? servers.sub : servers.dub)?.map((s) => (
-              <button
-                key={s.sourceId}
-                onClick={() => setSelectedSourceId(s.sourceId)}
-                className={`px-4 py-2 rounded-md text-sm font-medium capitalize transition-colors ${
-                  selectedSourceId === s.sourceId
-                    ? "bg-primary text-primary-foreground glow-sm"
-                    : "bg-secondary text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {s.server}
-              </button>
-            ))}
+        {/* Server indicator */}
+        {megacloudServers && (megacloudServers.sub.length > 0 || megacloudServers.dub.length > 0) && (
+          <div className="flex gap-2 mt-3">
+            <span className="px-4 py-2 rounded-md text-sm font-medium bg-primary text-primary-foreground glow-sm">
+              MegaCloud
+            </span>
           </div>
         )}
 
