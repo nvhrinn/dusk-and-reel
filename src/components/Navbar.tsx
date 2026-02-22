@@ -31,10 +31,10 @@ const Navbar = () => {
           </Link>
           <Link
             to="/about"
-            className="hidden sm:flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <User className="w-4 h-4" />
-            About
+            <span className="hidden sm:inline">About</span>
           </Link>
 
           <form onSubmit={handleSearch} className="relative">
