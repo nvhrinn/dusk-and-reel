@@ -9,7 +9,7 @@ const AboutDeveloper = () => {
           to="/"
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" /> Kembali
+          <ArrowLeft className="w-4 h-4" /> Back
         </Link>
 
         <div className="flex flex-col items-center text-center space-y-6">
@@ -19,7 +19,7 @@ const AboutDeveloper = () => {
           </div>
 
           <div className="space-y-2">
-            <h1 className="font-display text-3xl font-bold text-foreground">AniStream Developer</h1>
+            <h1 className="font-display text-3xl font-bold text-foreground">AniRull Developer</h1>
             <p className="text-muted-foreground text-lg">Full-Stack Web Developer</p>
           </div>
 
@@ -30,7 +30,7 @@ const AboutDeveloper = () => {
               <h2 className="font-display font-semibold text-lg">Tentang Proyek</h2>
             </div>
             <p className="text-muted-foreground leading-relaxed">
-              AniStream adalah platform streaming anime gratis yang dibangun dengan teknologi modern.
+              AniRull adalah platform streaming anime gratis yang dibangun dengan teknologi modern.
               Menggunakan React, TypeScript, Tailwind CSS, dan Lovable Cloud sebagai backend.
               Proyek ini dibuat untuk memberikan pengalaman menonton anime yang mulus dan menyenangkan.
             </p>
@@ -58,17 +58,15 @@ const AboutDeveloper = () => {
               <a href="#" className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition-colors py-1.5">
                 <Github className="w-5 h-5" /> GitHub
               </a>
-              <a href="#" className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition-colors py-1.5">
+              <a href="https://irul-king.biz.id/" className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition-colors py-1.5">
                 <Globe className="w-5 h-5" /> Website
               </a>
-              <a href="#" className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition-colors py-1.5">
-                <Mail className="w-5 h-5" /> Email
-              </a>
+              
             </div>
           </div>
 
           <p className="text-xs text-muted-foreground pt-4">
-            Dibuat dengan ❤️ menggunakan Lovable
+            Created by ©Rlzyy 🕊️
           </p>
         </div>
       </div>
