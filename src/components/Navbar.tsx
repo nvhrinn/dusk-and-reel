@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Search, Home, Flame } from "lucide-react";
+import { Search, Home, Flame, User } from "lucide-react";
 import { useState } from "react";
 
 const Navbar = () => {
@@ -28,6 +28,13 @@ const Navbar = () => {
           >
             <Home className="w-4 h-4" />
             Home
+          </Link>
+          <Link
+            to="/about"
+            className="hidden sm:flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <User className="w-4 h-4" />
+            About
           </Link>
 
           <form onSubmit={handleSearch} className="relative">

@@ -278,7 +278,8 @@ Deno.serve(async (req) => {
         const sub: unknown[] = [];
         const dub: unknown[] = [];
 
-        $(".ps_-block.ps_-block-sub.servers-sub .ps__-list .server-item").each((_: number, el: cheerio.Element) => {
+        // Sub servers
+        $(".servers-sub .server-item").each((_: number, el: cheerio.Element) => {
           sub.push({
             server: $(el).text().trim().toLowerCase(),
             serverId: $(el).attr("data-server-id"),
@@ -286,7 +287,8 @@ Deno.serve(async (req) => {
           });
         });
 
-        $(".ps_-block.ps_-block-sub.servers-dub .ps__-list .server-item").each((_: number, el: cheerio.Element) => {
+        // Dub servers
+        $(".servers-dub .server-item").each((_: number, el: cheerio.Element) => {
           dub.push({
             server: $(el).text().trim().toLowerCase(),
             serverId: $(el).attr("data-server-id"),
