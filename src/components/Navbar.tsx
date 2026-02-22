@@ -18,7 +18,7 @@ const Navbar = () => {
       <div className="container mx-auto flex items-center justify-between h-14 px-4">
         <Link to="/" className="flex items-center gap-2">
           <Flame className="w-6 h-6 text-primary" />
-          <span className="font-display font-bold text-lg text-gradient">AniStream</span>
+          <span className="font-display font-bold text-lg text-gradient">AniRull</span>
         </Link>
 
         <div className="flex items-center gap-4">
