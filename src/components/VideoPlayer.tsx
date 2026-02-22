@@ -1,11 +1,17 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import Hls from "hls.js";
-import { SkipForward, AlertTriangle } from "lucide-react";
+import { SkipForward, AlertTriangle, Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+interface Track {
+  file: string;
+  label: string;
+  kind: string;
+}
 
 interface VideoPlayerProps {
   src: string;
-  tracks?: { file: string; label: string; kind: string }[];
+  tracks?: Track[];
   intro?: { start: number; end: number };
   outro?: { start: number; end: number };
   onError?: () => void;
@@ -17,11 +23,17 @@ const VideoPlayer = ({ src, tracks, intro, outro, onError }: VideoPlayerProps) =
   const [error, setError] = useState(false);
   const [showSkipIntro, setShowSkipIntro] = useState(false);
   const [showSkipOutro, setShowSkipOutro] = useState(false);
+  const [selectedTrack, setSelectedTrack] = useState<number>(0);
+  const [showTrackMenu, setShowTrackMenu] = useState(false);
 
   const hasIntro = intro && intro.end > intro.start && intro.end > 0;
   const hasOutro = outro && outro.end > outro.start && outro.end > 0;
 
-  // Build proxy base URL for HLS requests
+  const subtitleTracks = useMemo(
+    () => tracks?.filter((t) => t.kind === "captions" || t.kind === "subtitles") || [],
+    [tracks]
+  );
+
   const proxyBase = useMemo(() => {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     return `${supabaseUrl}/functions/v1/aniwatch?url=`;
@@ -42,10 +54,8 @@ const VideoPlayer = ({ src, tracks, intro, outro, onError }: VideoPlayerProps) =
     setError(false);
 
     if (Hls.isSupported()) {
-      // Custom loader that proxies all requests through our edge function
       class ProxyLoader extends Hls.DefaultConfig.loader {
         load(context: any, config: any, callbacks: any) {
-          // Rewrite the URL to go through our proxy
           context.url = `${proxyBase}${encodeURIComponent(context.url)}`;
           super.load(context, config, callbacks);
         }
@@ -77,7 +87,6 @@ const VideoPlayer = ({ src, tracks, intro, outro, onError }: VideoPlayerProps) =
         }
       });
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      // Safari native HLS - can't proxy easily, try direct
       video.src = src;
       video.addEventListener("loadedmetadata", () => {
         video.play().catch(() => {});
@@ -94,14 +103,22 @@ const VideoPlayer = ({ src, tracks, intro, outro, onError }: VideoPlayerProps) =
     };
   }, [src, onError, proxyBase]);
 
+  // Update active subtitle track
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const textTracks = video.textTracks;
+    for (let i = 0; i < textTracks.length; i++) {
+      textTracks[i].mode = i === selectedTrack ? "showing" : "hidden";
+    }
+  }, [selectedTrack, subtitleTracks]);
+
   const skipIntro = () => {
     if (videoRef.current && intro) videoRef.current.currentTime = intro.end;
   };
   const skipOutro = () => {
     if (videoRef.current && outro) videoRef.current.currentTime = outro.end;
   };
-
-  const subtitleTracks = tracks?.filter((t) => t.kind === "captions" || t.kind === "subtitles") || [];
 
   if (error) {
     return (
@@ -113,7 +130,7 @@ const VideoPlayer = ({ src, tracks, intro, outro, onError }: VideoPlayerProps) =
   }
 
   return (
-    <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden">
+    <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden group">
       <video
         ref={videoRef}
         controls
@@ -123,14 +140,48 @@ const VideoPlayer = ({ src, tracks, intro, outro, onError }: VideoPlayerProps) =
       >
         {subtitleTracks.map((track, i) => (
           <track
-            key={i}
+            key={`${track.label}-${i}`}
             src={track.file}
             label={track.label}
             kind="subtitles"
-            default={i === 0}
+            default={i === selectedTrack}
           />
         ))}
       </video>
+
+      {/* Subtitle language selector */}
+      {subtitleTracks.length > 0 && (
+        <div className="absolute top-3 right-3 z-20">
+          <button
+            onClick={() => setShowTrackMenu((v) => !v)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-black/70 text-white hover:bg-black/90 backdrop-blur-sm transition-colors"
+          >
+            <Languages className="w-3.5 h-3.5" />
+            {subtitleTracks[selectedTrack]?.label || "Subtitles"}
+          </button>
+
+          {showTrackMenu && (
+            <div className="absolute top-full right-0 mt-1 min-w-[140px] rounded-md bg-card/95 backdrop-blur-lg border border-border shadow-lg overflow-hidden animate-fade-in">
+              {subtitleTracks.map((track, i) => (
+                <button
+                  key={i}
+                  onClick={() => {
+                    setSelectedTrack(i);
+                    setShowTrackMenu(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 text-xs transition-colors ${
+                    i === selectedTrack
+                      ? "bg-primary text-primary-foreground"
+                      : "text-foreground hover:bg-secondary"
+                  }`}
+                >
+                  {track.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {showSkipIntro && (
         <Button
