@@ -99,7 +99,7 @@ const WatchPage = () => {
           onClick={() => navigate(`/anime/${id}`)}
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" /> Kembali ke detail
+          <ArrowLeft className="w-4 h-4" /> Back to details
         </button>
 
         {/* Player */}
@@ -124,7 +124,7 @@ const WatchPage = () => {
           </div>
         ) : (
           <div className="w-full aspect-video rounded-lg bg-secondary flex items-center justify-center">
-            <p className="text-muted-foreground">Pilih server untuk mulai menonton</p>
+            <p className="text-muted-foreground">Select a server to start watching</p>
           </div>
         )}
 
@@ -143,7 +143,7 @@ const WatchPage = () => {
               {/* Audio type */}
               <div className="flex items-center gap-2">
                 <Volume2 className="w-4 h-4 text-muted-foreground" />
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Audio</span>
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Dub</span>
                 <div className="flex rounded-md overflow-hidden border border-border">
                   {hasSub && (
                     <button
