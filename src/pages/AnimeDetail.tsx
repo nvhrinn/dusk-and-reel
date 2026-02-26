@@ -63,7 +63,7 @@ const AnimeDetail = () => {
 
       <div className="container mx-auto px-4 -mt-40 relative z-10">
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => navigate("/")}
           className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" /> Back

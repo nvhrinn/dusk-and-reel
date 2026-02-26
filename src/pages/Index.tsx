@@ -1,9 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { aniwatchApi, AnimeSearchResult } from "@/lib/api";
 import HeroSlider from "@/components/HeroSlider";
 import AnimeCard from "@/components/AnimeCard";
 import { SkeletonGrid, SkeletonHero } from "@/components/Skeletons";
 import { TrendingUp, Clock, Flame, Star } from "lucide-react";
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 const Section = ({
   icon: Icon,
@@ -31,19 +41,31 @@ const Section = ({
 };
 
 const Index = () => {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, dataUpdatedAt } = useQuery({
     queryKey: ["home"],
     queryFn: () => aniwatchApi.home(),
-    refetchInterval: 5 * 60 * 1000, // Auto-refresh every 5 minutes
+    refetchInterval: 5 * 60 * 1000,
     staleTime: 3 * 60 * 1000,
   });
+
+  // Shuffle card positions on every data fetch
+  const shuffled = useMemo(() => {
+    if (!data) return null;
+    return {
+      slides: data.slides ? shuffle(data.slides) : [],
+      trending: data.trending ? shuffle(data.trending) : [],
+      latestEpisodes: data.latestEpisodes ? shuffle(data.latestEpisodes) : [],
+      topAiring: data.topAiring ? shuffle(data.topAiring) : [],
+      popular: data.popular ? shuffle(data.popular) : [],
+    };
+  }, [data, dataUpdatedAt]);
 
   return (
     <div className="min-h-screen pt-14">
       {isLoading ? (
         <SkeletonHero />
       ) : (
-        data?.slides && <HeroSlider slides={data.slides} />
+        shuffled?.slides && <HeroSlider slides={shuffled.slides} />
       )}
 
       <section className="container mx-auto px-4 py-8">
@@ -56,7 +78,7 @@ const Index = () => {
           <SkeletonGrid count={10} />
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {data?.trending?.map((anime, i) => (
+            {shuffled?.trending?.map((anime, i) => (
               <AnimeCard key={anime.id || i} anime={anime} index={i} />
             ))}
           </div>
@@ -69,9 +91,9 @@ const Index = () => {
         </section>
       ) : (
         <>
-          <Section icon={Clock} title="Latest Episodes" items={data?.latestEpisodes} />
-          <Section icon={Flame} title="Top Airing" items={data?.topAiring} />
-          <Section icon={Star} title="Most Popular" items={data?.popular} />
+          <Section icon={Clock} title="Latest Episodes" items={shuffled?.latestEpisodes} />
+          <Section icon={Flame} title="Top Airing" items={shuffled?.topAiring} />
+          <Section icon={Star} title="Most Popular" items={shuffled?.popular} />
         </>
       )}
     </div>
