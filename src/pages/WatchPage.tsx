@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { aniwatchApi } from "@/lib/api";
 import VideoPlayer from "@/components/VideoPlayer";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Subtitles, Mic, Monitor } from "lucide-react";
+import { ArrowLeft, Monitor, Volume2, Globe } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 
 const WatchPage = () => {
@@ -116,6 +116,7 @@ const WatchPage = () => {
             <div className="flex flex-wrap items-center gap-3 p-3 rounded-lg bg-secondary/50 border border-border">
               {/* Audio type */}
               <div className="flex items-center gap-2">
+                <Volume2 className="w-4 h-4 text-muted-foreground" />
                 <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Audio</span>
                 <div className="flex rounded-md overflow-hidden border border-border">
                   {hasSub && (
@@ -127,7 +128,7 @@ const WatchPage = () => {
                           : "bg-card text-muted-foreground hover:text-foreground"
                       }`}
                     >
-                      <Subtitles className="w-3.5 h-3.5" /> Sub
+                      🇯🇵 Japanese
                     </button>
                   )}
                   {hasDub && (
@@ -139,7 +140,7 @@ const WatchPage = () => {
                           : "bg-card text-muted-foreground hover:text-foreground"
                       }`}
                     >
-                      <Mic className="w-3.5 h-3.5" /> Dub
+                      🇺🇸 English
                     </button>
                   )}
                 </div>

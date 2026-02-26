@@ -29,10 +29,19 @@ const VideoPlayer = ({ src, tracks, intro, outro, onError }: VideoPlayerProps) =
   const hasIntro = intro && intro.end > intro.start && intro.end > 0;
   const hasOutro = outro && outro.end > outro.start && outro.end > 0;
 
-  const subtitleTracks = useMemo(
-    () => tracks?.filter((t) => t.kind === "captions" || t.kind === "subtitles") || [],
-    [tracks]
-  );
+  const subtitleTracks = useMemo(() => {
+    const subs = tracks?.filter((t) => t.kind === "captions" || t.kind === "subtitles") || [];
+    // Sort: prioritize Indonesian, then English, then others
+    return subs.sort((a, b) => {
+      const priority = (label: string) => {
+        const l = label.toLowerCase();
+        if (l.includes("indonesian") || l.includes("indonesia") || l.includes("ind")) return 0;
+        if (l.includes("english")) return 1;
+        return 2;
+      };
+      return priority(a.label) - priority(b.label);
+    });
+  }, [tracks]);
 
   const proxyBase = useMemo(() => {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -161,23 +170,37 @@ const VideoPlayer = ({ src, tracks, intro, outro, onError }: VideoPlayerProps) =
           </button>
 
           {showTrackMenu && (
-            <div className="absolute top-full right-0 mt-1 min-w-[140px] rounded-md bg-card/95 backdrop-blur-lg border border-border shadow-lg overflow-hidden animate-fade-in">
-              {subtitleTracks.map((track, i) => (
-                <button
-                  key={i}
-                  onClick={() => {
-                    setSelectedTrack(i);
-                    setShowTrackMenu(false);
-                  }}
-                  className={`w-full text-left px-3 py-2 text-xs transition-colors ${
-                    i === selectedTrack
-                      ? "bg-primary text-primary-foreground"
-                      : "text-foreground hover:bg-secondary"
-                  }`}
-                >
-                  {track.label}
-                </button>
-              ))}
+            <div className="absolute top-full right-0 mt-1 min-w-[160px] max-h-[240px] overflow-y-auto rounded-md bg-black/90 backdrop-blur-lg border border-white/10 shadow-lg overflow-hidden animate-fade-in">
+              <div className="px-3 py-1.5 text-[10px] uppercase tracking-wider text-white/50 font-semibold border-b border-white/10">
+                Subtitle Language
+              </div>
+              {subtitleTracks.map((track, i) => {
+                const label = track.label.toLowerCase();
+                const flag = label.includes("indonesian") || label.includes("indonesia")
+                  ? "🇮🇩"
+                  : label.includes("english")
+                  ? "🇺🇸"
+                  : label.includes("japanese")
+                  ? "🇯🇵"
+                  : "🌐";
+                return (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      setSelectedTrack(i);
+                      setShowTrackMenu(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 transition-colors ${
+                      i === selectedTrack
+                        ? "bg-primary text-primary-foreground"
+                        : "text-white/80 hover:bg-white/10"
+                    }`}
+                  >
+                    <span>{flag}</span>
+                    {track.label}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
