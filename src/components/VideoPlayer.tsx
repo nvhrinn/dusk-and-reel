@@ -174,33 +174,22 @@ const VideoPlayer = ({ src, tracks, intro, outro, onError }: VideoPlayerProps) =
               <div className="px-3 py-1.5 text-[10px] uppercase tracking-wider text-white/50 font-semibold border-b border-white/10">
                 Subtitle Language
               </div>
-              {subtitleTracks.map((track, i) => {
-                const label = track.label.toLowerCase();
-                const flag = label.includes("indonesian") || label.includes("indonesia")
-                  ? "🇮🇩"
-                  : label.includes("english")
-                  ? "🇺🇸"
-                  : label.includes("japanese")
-                  ? "🇯🇵"
-                  : "🌐";
-                return (
+              {subtitleTracks.map((track, i) => (
                   <button
                     key={i}
                     onClick={() => {
                       setSelectedTrack(i);
                       setShowTrackMenu(false);
                     }}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 transition-colors ${
+                    className={`w-full text-left px-3 py-2 text-xs transition-colors ${
                       i === selectedTrack
                         ? "bg-primary text-primary-foreground"
                         : "text-white/80 hover:bg-white/10"
                     }`}
                   >
-                    <span>{flag}</span>
                     {track.label}
                   </button>
-                );
-              })}
+              ))}
             </div>
           )}
         </div>
