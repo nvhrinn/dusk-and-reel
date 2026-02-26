@@ -154,7 +154,7 @@ const WatchPage = () => {
                           : "bg-card text-muted-foreground hover:text-foreground"
                       }`}
                     >
-                      🇯🇵 Japanese
+                      Japanese
                     </button>
                   )}
                   {hasDub && (
@@ -166,7 +166,7 @@ const WatchPage = () => {
                           : "bg-card text-muted-foreground hover:text-foreground"
                       }`}
                     >
-                      🇺🇸 English
+                      English
                     </button>
                   )}
                 </div>
