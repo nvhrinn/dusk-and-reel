@@ -13,6 +13,7 @@ const WatchPage = () => {
   const navigate = useNavigate();
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [audioType, setAudioType] = useState<"sub" | "dub">("sub");
+  const [cachedSubTracks, setCachedSubTracks] = useState<{ file: string; label: string; kind: string }[]>([]);
 
   const { data: episodes } = useQuery({
     queryKey: ["episodes", id],
@@ -34,6 +35,23 @@ const WatchPage = () => {
       }
     : null;
 
+  // Also fetch sub stream to cache subtitle tracks for dub usage
+  const subSourceId = megacloudServers?.sub?.[0]?.sourceId || null;
+  const { data: subStream } = useQuery({
+    queryKey: ["watch-sub-tracks", subSourceId],
+    queryFn: () => aniwatchApi.watch(subSourceId!),
+    enabled: !!subSourceId,
+    retry: 1,
+    staleTime: Infinity,
+  });
+
+  // Cache sub tracks when available
+  useEffect(() => {
+    if (subStream?.tracks?.length) {
+      setCachedSubTracks(subStream.tracks);
+    }
+  }, [subStream]);
+
   // Auto-select megacloud server when audio type or servers change
   useEffect(() => {
     if (!megacloudServers) return;
@@ -41,7 +59,6 @@ const WatchPage = () => {
     if (list?.length) {
       setSelectedSourceId(list[0].sourceId);
     } else if (audioType === "dub" && megacloudServers.sub?.length) {
-      // Fallback to sub if dub not available
       setAudioType("sub");
       setSelectedSourceId(megacloudServers.sub[0].sourceId);
     } else if (audioType === "sub" && megacloudServers.dub?.length) {
@@ -59,6 +76,15 @@ const WatchPage = () => {
 
   const currentEp = episodes?.find((e) => e.epId === epId);
   const streamUrl = stream?.sources?.[0]?.url;
+
+  // Use stream's own tracks, but fallback to cached sub tracks if empty (e.g. dub has no subs)
+  const effectiveTracks = stream?.tracks?.filter(
+    (t) => t.kind === "captions" || t.kind === "subtitles"
+  )?.length
+    ? stream.tracks
+    : cachedSubTracks.length
+    ? cachedSubTracks
+    : stream?.tracks || [];
 
   const handlePlayerError = useCallback(() => {}, []);
 
@@ -82,7 +108,7 @@ const WatchPage = () => {
         ) : streamUrl ? (
           <VideoPlayer
             src={streamUrl}
-            tracks={stream?.tracks}
+            tracks={effectiveTracks}
             intro={stream?.intro}
             outro={stream?.outro}
             onError={handlePlayerError}
