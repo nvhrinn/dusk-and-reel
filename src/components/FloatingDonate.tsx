@@ -8,7 +8,7 @@ const FloatingDonate = () => {
       duration: 8000,
       action: {
         label: "Donate",
-        onClick: () => window.open("https://saweria.co/anirull", "_blank"),
+        onClick: () => window.open("https://saweria.co/RullZY", "_blank"),
       },
     });
   };
