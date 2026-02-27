@@ -18,7 +18,7 @@ const AboutDeveloper = () => {
             <img
       src="https://tmpfiles.org/dl/26524454/96271bd0-cf01-48c5-8e68-e3c00c99105f.jpg"
       alt="avatar"
-      className="w-full h-full object-cover"
+      className="w-16 h-16 object-contain"
     />
           </div>
 
