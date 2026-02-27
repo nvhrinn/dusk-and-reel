@@ -15,11 +15,15 @@ const AboutDeveloper = () => {
         <div className="flex flex-col items-center text-center space-y-6">
           {/* Avatar */}
           <div className="w-28 h-28 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg">
-            <Code2 className="w-14 h-14 text-primary-foreground" />
+            <img
+      src="https://tmpfiles.org/dl/26524454/96271bd0-cf01-48c5-8e68-e3c00c99105f.jpg"
+      alt="avatar"
+      className="w-full h-full object-cover"
+    />
           </div>
 
           <div className="space-y-2">
-            <h1 className="font-display text-3xl font-bold text-foreground">AniRull Developer</h1>
+            <h1 className="font-display text-3xl font-bold text-foreground">Irull</h1>
             <p className="text-muted-foreground text-lg">Beginner Developer</p>
           </div>
 
