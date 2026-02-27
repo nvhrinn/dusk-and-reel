@@ -1,0 +1,27 @@
+import { Heart } from "lucide-react";
+import { toast } from "sonner";
+
+const FloatingDonate = () => {
+  const handleDonate = () => {
+    toast("Support AniRull", {
+      description: "Thank you for considering a donation! Your support helps keep this project alive.",
+      duration: 8000,
+      action: {
+        label: "Donate",
+        onClick: () => window.open("https://saweria.co/anirull", "_blank"),
+      },
+    });
+  };
+
+  return (
+    <button
+      onClick={handleDonate}
+      className="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:scale-110 active:scale-95 transition-transform flex items-center justify-center glow-sm"
+      aria-label="Donate"
+    >
+      <Heart className="w-5 h-5" />
+    </button>
+  );
+};
+
+export default FloatingDonate;
