@@ -20,7 +20,7 @@ const AboutDeveloper = () => {
 
           <div className="space-y-2">
             <h1 className="font-display text-3xl font-bold text-foreground">AniRull Developer</h1>
-            <p className="text-muted-foreground text-lg">Full-Stack Web Developer</p>
+            <p className="text-muted-foreground text-lg">Beginner Developer</p>
           </div>
 
           {/* About card */}
@@ -40,7 +40,7 @@ const AboutDeveloper = () => {
           <div className="w-full p-6 rounded-xl bg-card border border-border space-y-4 text-left">
             <h2 className="font-display font-semibold text-lg text-foreground">Tech Stack</h2>
             <div className="flex flex-wrap gap-2">
-              {["React", "TypeScript", "Tailwind CSS", "Vite", "Lovable Cloud", "HLS.js", "Framer Motion", "TanStack Query"].map((tech) => (
+              {["React", "TypeScript", "Tailwind CSS", "Vite", "Javascript", "Python", "PHP"].map((tech) => (
                 <span
                   key={tech}
                   className="px-3 py-1.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20"
