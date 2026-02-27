@@ -4,7 +4,7 @@ import { aniwatchApi, AnimeSearchResult } from "@/lib/api";
 import HeroSlider from "@/components/HeroSlider";
 import AnimeCard from "@/components/AnimeCard";
 import { SkeletonGrid, SkeletonHero } from "@/components/Skeletons";
-import { TrendingUp, Clock, Flame, Star } from "lucide-react";
+import { TrendingUp, Clock, Flame, Star, Calendar } from "lucide-react";
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -57,6 +57,7 @@ const Index = () => {
       latestEpisodes: data.latestEpisodes ? shuffle(data.latestEpisodes) : [],
       topAiring: data.topAiring ? shuffle(data.topAiring) : [],
       popular: data.popular ? shuffle(data.popular) : [],
+      upcoming: data.upcoming ? shuffle(data.upcoming) : [],
     };
   }, [data, dataUpdatedAt]);
 
@@ -94,6 +95,7 @@ const Index = () => {
           <Section icon={Clock} title="Latest Episodes" items={shuffled?.latestEpisodes} />
           <Section icon={Flame} title="Top Airing" items={shuffled?.topAiring} />
           <Section icon={Star} title="Most Popular" items={shuffled?.popular} />
+          <Section icon={Calendar} title="Upcoming Anime" items={shuffled?.upcoming} />
         </>
       )}
     </div>

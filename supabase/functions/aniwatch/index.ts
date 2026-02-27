@@ -146,7 +146,17 @@ Deno.serve(async (req) => {
           });
         }
 
-        result = { slides, trending, latestEpisodes, topAiring, popular };
+        // Upcoming Anime section
+        const upcoming: unknown[] = [];
+        $("section.block_area.block_area_home:has(.cat-heading:contains('Upcoming'))").find(".flw-item").each((_: number, el: cheerio.Element) => {
+          const card = parseAnimeCard($, el);
+          // Override duration with release date info if available
+          const release = $(el).find(".fdi-item.fdi-duration").text().trim();
+          if (release) (card as any).duration = release;
+          upcoming.push(card);
+        });
+
+        result = { slides, trending, latestEpisodes, topAiring, popular, upcoming };
         break;
       }
 

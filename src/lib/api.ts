@@ -73,6 +73,7 @@ export interface HomeData {
   latestEpisodes: AnimeSearchResult[];
   topAiring: AnimeSearchResult[];
   popular: AnimeSearchResult[];
+  upcoming: AnimeSearchResult[];
 }
 
 async function callApi<T>(body: Record<string, unknown>): Promise<T> {
