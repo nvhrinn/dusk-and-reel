@@ -18,12 +18,10 @@ const AnimeDetail = () => {
     enabled: !!id,
   });
 
-  const watchId = info?.id || id;
-
   const { data: episodes, isLoading: epsLoading } = useQuery({
-    queryKey: ["episodes", watchId],
-    queryFn: () => aniwatchApi.episodes(watchId!),
-    enabled: !!watchId,
+    queryKey: ["episodes", id],
+    queryFn: () => aniwatchApi.episodes(id!),
+    enabled: !!id,
   });
 
   if (infoLoading) {
@@ -147,7 +145,7 @@ const AnimeDetail = () => {
             {episodes && episodes.length > 0 && (
               <Button
                 className="mt-6 glow-sm font-display"
-                onClick={() => navigate(`/watch/${watchId}?ep=${episodes[0].epId}`)}
+                onClick={() => navigate(`/watch/${id}?ep=${episodes[0].epId}`)}
               >
                 <Play className="w-4 h-4 mr-2" /> Start Watching
               </Button>
@@ -172,7 +170,7 @@ const AnimeDetail = () => {
               {episodes.map((ep) => (
                 <button
                   key={ep.epId}
-                  onClick={() => navigate(`/watch/${watchId}?ep=${ep.epId}`)}
+                  onClick={() => navigate(`/watch/${id}?ep=${ep.epId}`)}
                   className="h-12 rounded-md bg-secondary hover:bg-accent border border-border text-sm font-medium transition-colors flex items-center justify-center gap-1 group"
                 >
                   <span className="text-muted-foreground group-hover:text-primary transition-colors">
