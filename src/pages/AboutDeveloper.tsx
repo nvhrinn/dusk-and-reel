@@ -2,8 +2,8 @@ import { ArrowLeft, Github, Globe, Sparkles, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const contributors = [
-  { name: "Your Friend", role: "UI Designer" },
-  { name: "Open Source", role: "Community Support" },
+  { name: "Irull", role: "Dev" },
+  { name: "Kyuurzyy", role: "Advertising Distribution" },
 ];
 
 const AboutDeveloper = () => {
