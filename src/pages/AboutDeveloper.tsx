@@ -24,7 +24,7 @@ const AboutDeveloper = () => {
           {/* Avatar */}
           <div className="w-28 h-28 rounded-full overflow-hidden glass border border-white/10 shadow-lg">
             <img
-              src="https://tmpfiles.org/dl/26524454/96271bd0-cf01-48c5-8e68-e3c00c99105f.jpg"
+              src="https://ibb.co.com/YBgK4MVD"
               alt="avatar"
               className="w-full h-full object-cover"
             />
