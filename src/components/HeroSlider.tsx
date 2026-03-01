@@ -157,13 +157,13 @@ const HeroSlider = ({ slides }: HeroSliderProps) => {
         <>
           <button
             onClick={() => goTo((current - 1 + slides.length) % slides.length)}
-            className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full glass flex items-center justify-center text-foreground hover:bg-secondary transition-colors"
+            className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-2xl glass-strong flex items-center justify-center text-foreground hover:bg-secondary transition-colors"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
           <button
             onClick={() => goTo((current + 1) % slides.length)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full glass flex items-center justify-center text-foreground hover:bg-secondary transition-colors"
+            className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-2xl glass-strong flex items-center justify-center text-foreground hover:bg-secondary transition-colors"
           >
             <ChevronRight className="w-5 h-5" />
           </button>

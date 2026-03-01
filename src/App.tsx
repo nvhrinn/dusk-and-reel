@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import FloatingDonate from "@/components/FloatingDonate";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
 import Index from "./pages/Index";
 import SearchPage from "./pages/SearchPage";
 import AnimeDetail from "./pages/AnimeDetail";
@@ -29,6 +30,7 @@ const App = () => (
       <BrowserRouter>
         <Navbar />
         <FloatingDonate />
+        <ThemeSwitcher />
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/search" element={<SearchPage />} />

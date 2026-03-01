@@ -139,7 +139,7 @@ const WatchPage = () => {
 
           {/* Audio & Server controls */}
           {megacloudServers && (hasSub || hasDub) && (
-            <div className="flex flex-wrap items-center gap-3 p-3 rounded-lg bg-secondary/50 border border-border">
+            <div className="flex flex-wrap items-center gap-3 p-3 rounded-2xl glass">
               {/* Audio type */}
               <div className="flex items-center gap-2">
                 <Volume2 className="w-4 h-4 text-muted-foreground" />
@@ -195,10 +195,10 @@ const WatchPage = () => {
                 <button
                   key={ep.epId}
                   onClick={() => navigate(`/watch/${id}?ep=${ep.epId}`)}
-                  className={`h-10 rounded-md text-sm font-medium transition-colors ${
+                  className={`h-10 rounded-xl text-sm font-medium transition-colors ${
                     ep.epId === epId
                       ? "bg-primary text-primary-foreground glow-sm"
-                      : "bg-secondary text-muted-foreground hover:text-foreground border border-border"
+                      : "glass-sm text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   {ep.order}

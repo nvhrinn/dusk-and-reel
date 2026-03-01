@@ -19,7 +19,7 @@ const AnimeCard = ({ anime, index = 0 }: AnimeCardProps) => {
       onClick={() => navigate(`/anime/${anime.id}`)}
       style={{ animationDelay: `${index * 50}ms` }}
     >
-      <div className="relative aspect-[3/4] rounded-lg overflow-hidden bg-secondary">
+      <div className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-secondary glass-sm">
         {"image" in anime && anime.image && (
           <img
             src={anime.image}
