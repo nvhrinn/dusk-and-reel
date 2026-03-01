@@ -22,7 +22,10 @@ function parseAnimeCard($: cheerio.CheerioAPI, el: cheerio.Element) {
     jname: $(el).find(".film-name .dynamic-name").attr("data-jname") || "",
     format: $(el).find(".fd-infor .fdi-item").first().text().trim(),
     duration: $(el).find(".fd-infor .fdi-item").last().text().trim(),
-    id: $(el).find(".film-name a").attr("href")?.replace("/", "") || "",
+    id: ($(el).find(".film-name a").attr("href") || "")
+      .replace(/^\/(watch\/)?/, "")
+      .split("?")[0]
+      .split("#")[0],
     sub: $(el).find(".tick-sub").text().trim(),
     dub: $(el).find(".tick-dub").text().trim() || "0",
     totalEp: $(el).find(".tick-eps").text().trim() || null,
@@ -260,7 +263,8 @@ Deno.serve(async (req) => {
       }
 
       case 'episodes': {
-        const animeId = id.match(/\d+/)?.[0];
+        const animeIdMatch = id.match(/-(\d+)(?:\?.*)?$/) || id.match(/(\d+)(?:\?.*)?$/);
+        const animeId = animeIdMatch?.[1];
         if (!animeId) throw new Error("Invalid anime id");
 
         const res = await fetch(`${BASE}/ajax/v2/episode/list/${animeId}`, { headers: HEADERS });

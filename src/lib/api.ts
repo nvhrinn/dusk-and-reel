@@ -82,11 +82,17 @@ async function callApi<T>(body: Record<string, unknown>): Promise<T> {
   return data as T;
 }
 
+const normalizeAnimeId = (rawId: string) =>
+  rawId
+    .replace(/^\/(watch\/)?/, "")
+    .split("?")[0]
+    .split("#")[0];
+
 export const aniwatchApi = {
   home: () => callApi<HomeData>({ action: "home" }),
   search: (query: string, page = 1) => callApi<{ results: AnimeSearchResult[] }>({ action: "search", query, page }),
-  info: (id: string) => callApi<AnimeInfo>({ action: "info", id }),
-  episodes: (id: string) => callApi<Episode[]>({ action: "episodes", id }),
+  info: (id: string) => callApi<AnimeInfo>({ action: "info", id: normalizeAnimeId(id) }),
+  episodes: (id: string) => callApi<Episode[]>({ action: "episodes", id: normalizeAnimeId(id) }),
   servers: (episodeId: string) => callApi<{ sub: Server[]; dub: Server[] }>({ action: "servers", episodeId }),
   watch: (sourceId: string) => callApi<StreamData>({ action: "watch", sourceId }),
 };
