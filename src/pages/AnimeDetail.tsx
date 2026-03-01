@@ -171,7 +171,7 @@ const AnimeDetail = () => {
                 <button
                   key={ep.epId}
                   onClick={() => navigate(`/watch/${id}?ep=${ep.epId}`)}
-                  className="h-12 rounded-md bg-secondary hover:bg-accent border border-border text-sm font-medium transition-colors flex items-center justify-center gap-1 group"
+                  className="h-12 rounded-xl glass-sm hover:bg-accent/20 text-sm font-medium transition-colors flex items-center justify-center gap-1 group"
                 >
                   <span className="text-muted-foreground group-hover:text-primary transition-colors">
                     {ep.order}

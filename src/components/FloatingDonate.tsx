@@ -16,7 +16,7 @@ const FloatingDonate = () => {
   return (
     <button
       onClick={handleDonate}
-      className="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:scale-110 active:scale-95 transition-transform flex items-center justify-center glow-sm"
+      className="fixed bottom-6 right-6 z-50 w-11 h-11 rounded-2xl bg-primary text-primary-foreground hover:scale-110 active:scale-95 transition-transform flex items-center justify-center glow-sm"
       aria-label="Donate"
     >
       <Coffee className="w-5 h-5" />
