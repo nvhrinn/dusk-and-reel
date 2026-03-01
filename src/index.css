@@ -118,7 +118,7 @@
 
 @layer utilities {
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-rose-400;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-white;
   }
 
   /* Liquid Glass Effect — iOS 26 style */
