@@ -2,82 +2,61 @@ import { ArrowLeft, Github, Globe, Sparkles, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const contributors = [
-  {
-    name: "Rlzyy",
-    role: "UI Designer",
-    link: "#",
-  },
-  {
-    name: "Open Source Community",
-    role: "Support & Inspiration",
-    link: "#",
-  },
+  { name: "Your Friend", role: "UI Designer" },
+  { name: "Open Source", role: "Community Support" },
 ];
 
 const AboutDeveloper = () => {
   return (
-    <div className="min-h-screen pt-16 bg-black text-white">
-      <div className="container mx-auto px-4 py-12 max-w-3xl">
+    <div className="min-h-screen pt-14 bg-black text-white">
+      <div className="max-w-2xl mx-auto px-4 py-10">
 
         {/* Back */}
         <Link
           to="/"
-          className="flex items-center gap-2 text-sm text-gray-400 hover:text-white mb-10 transition-colors"
+          className="flex items-center gap-1 text-sm text-gray-400 hover:text-white mb-8 transition"
         >
-          <ArrowLeft className="w-4 h-4" />
-          Back
+          <ArrowLeft size={16} /> Back
         </Link>
 
-        <div className="flex flex-col items-center text-center space-y-10">
+        <div className="flex flex-col items-center text-center space-y-6">
 
           {/* Avatar */}
-          <div className="relative">
-            <div className="w-32 h-32 rounded-full glass flex items-center justify-center glow-liquid">
-              <img
-                src="https://tmpfiles.org/dl/26524454/96271bd0-cf01-48c5-8e68-e3c00c99105f.jpg"
-                alt="avatar"
-                className="w-20 h-20 rounded-full object-cover"
-              />
-            </div>
+          <div className="w-28 h-28 rounded-full overflow-hidden border border-white/10 shadow-lg">
+            <img
+              src="https://tmpfiles.org/dl/26524454/96271bd0-cf01-48c5-8e68-e3c00c99105f.jpg"
+              alt="avatar"
+              className="w-full h-full object-cover"
+            />
           </div>
 
           {/* Name */}
-          <div className="space-y-2">
-            <h1 className="text-4xl font-bold tracking-tight">Irull</h1>
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight">Irull</h1>
             <p className="text-gray-400">Beginner Developer</p>
           </div>
 
-          {/* About Project */}
-          <div className="glass w-full p-8 rounded-2xl text-left space-y-4">
-            <div className="flex items-center gap-2 text-primary">
-              <Sparkles className="w-5 h-5" />
+          {/* Tentang Proyek */}
+          <div className="w-full p-6 rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-md text-left space-y-3">
+            <div className="flex items-center gap-2 text-white">
+              <Sparkles size={18} />
               <h2 className="font-semibold text-lg">Tentang Proyek</h2>
             </div>
-            <p className="text-gray-300 leading-relaxed">
-              AniRull adalah platform streaming anime gratis yang dibangun dengan teknologi modern.
-              Menggunakan React, TypeScript, Tailwind CSS, dan backend custom.
-              Proyek ini dibuat untuk memberikan pengalaman menonton anime yang cepat,
-              ringan, dan nyaman dengan desain modern liquid glass.
+            <p className="text-gray-300 leading-relaxed text-sm">
+              AniRull adalah platform streaming anime gratis yang dibangun
+              dengan teknologi modern untuk memberikan pengalaman menonton
+              yang cepat, ringan, dan nyaman.
             </p>
           </div>
 
           {/* Tech Stack */}
-          <div className="glass w-full p-8 rounded-2xl text-left space-y-4">
-            <h2 className="font-semibold text-lg">Tech Stack</h2>
-
-            <div className="flex flex-wrap gap-3">
-              {[
-                "React",
-                "TypeScript",
-                "Tailwind",
-                "Vite",
-                "Javascript",
-                "Python",
-                "PHP",
-              ].map((tech) => (
+          <div className="w-full p-6 rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-md">
+            <h2 className="font-semibold mb-3 text-left">Tech Stack</h2>
+            <div className="flex flex-wrap gap-2">
+              {["React","TypeScript","Tailwind","Vite","Javascript","Python","PHP"].map((tech) => (
                 <span
                   key={tech}
-                  className="px-4 py-1.5 text-xs rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition"
+                  className="px-3 py-1 rounded-full text-xs bg-white/10 border border-white/10 text-gray-200"
                 >
                   {tech}
                 </span>
@@ -86,56 +65,48 @@ const AboutDeveloper = () => {
           </div>
 
           {/* Contributor Section */}
-          <div className="glass w-full p-8 rounded-2xl text-left space-y-6">
-            <div className="flex items-center gap-2 text-primary">
-              <Users className="w-5 h-5" />
-              <h2 className="font-semibold text-lg">Contributors</h2>
+          <div className="w-full p-6 rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-md text-left">
+            <div className="flex items-center gap-2 mb-3">
+              <Users size={18} />
+              <h2 className="font-semibold">Contributors</h2>
             </div>
 
-            <div className="space-y-4">
-              {contributors.map((c, index) => (
-                <a
-                  key={index}
-                  href={c.link}
-                  className="flex justify-between items-center p-4 rounded-xl bg-white/5 hover:bg-white/10 transition"
+            <div className="space-y-2">
+              {contributors.map((c, i) => (
+                <div
+                  key={i}
+                  className="flex justify-between text-sm text-gray-300 border-b border-white/5 pb-2"
                 >
-                  <div>
-                    <p className="font-medium">{c.name}</p>
-                    <p className="text-sm text-gray-400">{c.role}</p>
-                  </div>
-                  <Github className="w-5 h-5 text-gray-400" />
-                </a>
+                  <span>{c.name}</span>
+                  <span className="text-gray-500">{c.role}</span>
+                </div>
               ))}
             </div>
           </div>
 
-          {/* Contact */}
-          <div className="glass w-full p-8 rounded-2xl text-left space-y-4">
-            <h2 className="font-semibold text-lg">Kontak</h2>
+          {/* Kontak */}
+          <div className="w-full p-6 rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-md text-left space-y-3">
+            <h2 className="font-semibold">Kontak</h2>
 
-            <div className="space-y-3">
-              <a
-                href="#"
-                className="flex items-center gap-3 text-gray-400 hover:text-white transition"
-              >
-                <Github className="w-5 h-5" />
-                GitHub
-              </a>
+            <a
+              href="#"
+              className="flex items-center gap-3 text-gray-300 hover:text-white transition"
+            >
+              <Github size={18} /> GitHub
+            </a>
 
-              <a
-                href="https://irul-king.biz.id/"
-                className="flex items-center gap-3 text-gray-400 hover:text-white transition"
-              >
-                <Globe className="w-5 h-5" />
-                Website
-              </a>
-            </div>
+            <a
+              href="https://irul-king.biz.id/"
+              className="flex items-center gap-3 text-gray-300 hover:text-white transition"
+            >
+              <Globe size={18} /> Website
+            </a>
           </div>
 
-          {/* Footer */}
-          <p className="text-xs text-gray-500 pt-6">
-            Created with ❤️ by ©Rlzyy
+          <p className="text-xs text-gray-500 pt-2">
+            Created by ©Rlzyy 🕊️
           </p>
+
         </div>
       </div>
     </div>
