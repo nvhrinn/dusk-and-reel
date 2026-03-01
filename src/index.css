@@ -6,10 +6,7 @@
 
 @layer base {
   :root {
-    --background:
-    radial-gradient(circle at 25% 30%, #ff2d55 0%, transparent 40%),
-    radial-gradient(circle at 75% 70%, #0a84ff 0%, transparent 40%),
-    #050507;
+    --background: 220 15% 8%;
     --foreground: 0 0% 96%;
 
     --card: 220 15% 12%;
