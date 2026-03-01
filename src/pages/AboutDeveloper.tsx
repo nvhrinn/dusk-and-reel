@@ -22,12 +22,16 @@ const AboutDeveloper = () => {
         <div className="flex flex-col items-center text-center space-y-6">
 
           {/* Avatar */}
-          <div className="w-28 h-28 rounded-full overflow-hidden glass border border-white/10 shadow-lg">
-            <img
-              src="https://i.ibb.co.com/N2RkgPG1/image.jpg"
-              alt="avatar"
-              className="w-full h-full object-cover"
-            />
+          <div className="relative w-28 h-28 rounded-full p-[2px] bg-gradient-to-br from-white/30 to-white/5 shadow-xl">
+            <div className="w-full h-full rounded-full overflow-hidden bg-background/40 backdrop-blur-md">
+              <img
+                src="https://i.ibb.co.com/N2RkgPG1/image.jpg"
+                alt="avatar"
+                loading="lazy"
+                decoding="async"
+                className="w-full h-full object-cover scale-105"
+                />
+            </div>
           </div>
 
           {/* Name */}
