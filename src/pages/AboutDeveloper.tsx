@@ -22,7 +22,7 @@ const AboutDeveloper = () => {
         <div className="flex flex-col items-center text-center space-y-6">
 
           {/* Avatar */}
-          <div className="w-28 h-28 rounded-full overflow-hidden border border-white/10 shadow-lg">
+          <div className="w-28 h-28 rounded-full overflow-hidden glass border border-white/10 shadow-lg">
             <img
               src="https://tmpfiles.org/dl/26524454/96271bd0-cf01-48c5-8e68-e3c00c99105f.jpg"
               alt="avatar"
@@ -37,7 +37,7 @@ const AboutDeveloper = () => {
           </div>
 
           {/* Tentang Proyek */}
-          <div className="w-full p-6 rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-md text-left space-y-3">
+          <div className="w-full p-6 rounded-3xl glass border border-white/10 shadow-md text-left space-y-3">
             <div className="flex items-center gap-2 text-white">
               <Sparkles size={18} />
               <h2 className="font-semibold text-lg">Tentang Proyek</h2>
@@ -50,7 +50,7 @@ const AboutDeveloper = () => {
           </div>
 
           {/* Tech Stack */}
-          <div className="w-full p-6 rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-md">
+          <div className="w-full p-6 rounded-3xl glass border border-white/10 shadow-md">
             <h2 className="font-semibold mb-3 text-left">Tech Stack</h2>
             <div className="flex flex-wrap gap-2">
               {["React","TypeScript","Tailwind","Vite","Javascript","Python","PHP"].map((tech) => (
@@ -65,7 +65,7 @@ const AboutDeveloper = () => {
           </div>
 
           {/* Contributor Section */}
-          <div className="w-full p-6 rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-md text-left">
+          <div className="w-full p-6 rounded-3xl glass border border-white/10 shadow-md text-left">
             <div className="flex items-center gap-2 mb-3">
               <Users size={18} />
               <h2 className="font-semibold">Contributors</h2>
@@ -85,7 +85,7 @@ const AboutDeveloper = () => {
           </div>
 
           {/* Kontak */}
-          <div className="w-full p-6 rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-md text-left space-y-3">
+          <div className="w-full p-6 rounded-3xl glass border border-white/10 shadow-md text-left space-y-3">
             <h2 className="font-semibold">Kontak</h2>
 
             <a
