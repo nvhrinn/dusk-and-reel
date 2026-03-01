@@ -6,7 +6,10 @@
 
 @layer base {
   :root {
-    --background: 220 15% 8%;
+    --background:
+    radial-gradient(circle at 25% 30%, #ff2d55 0%, transparent 40%),
+    radial-gradient(circle at 75% 70%, #0a84ff 0%, transparent 40%),
+    #050507;
     --foreground: 0 0% 96%;
 
     --card: 220 15% 12%;
@@ -51,11 +54,12 @@
     
     /* Liquid glass tokens */
     /* Liquid glass tokens — enhanced */
-    --glass-bg: 220 20% 18% / 0.35;
-    --glass-border: 0 0% 100% / 0.12;
-    --glass-highlight: 0 0% 100% / 0.25;
-    --glass-shadow: 0 0% 0% / 0.45;
-    --glass-blur: 40px;
+    /* realistic liquid glass */
+--glass-bg: 220 18% 20% / 0.22;
+--glass-border: 0 0% 100% / 0.18;
+--glass-highlight: 0 0% 100% / 0.35;
+--glass-shadow: 0 0% 0% / 0.35;
+--glass-blur: 18px;
   }
 
   /* Color themes */
@@ -122,51 +126,56 @@
   .text-gradient {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-white;
   }
-  
-  @keyframes glassShimmer {
-  0% { transform: translateX(-150%) rotate(12deg); }
-  100% { transform: translateX(150%) rotate(12deg); }
-  }
+
 
   /* Liquid Glass Effect — iOS 26 style */
 .glass {
   position: relative;
   overflow: hidden;
-  animation: glassBreath 10s ease-in-out infinite;
-  background: linear-gradient(
-    to bottom,
-    hsla(0 0% 100% / 0.12),
-    hsla(var(--glass-bg))
-  );
-  backdrop-filter: blur(var(--glass-blur)) saturate(1.8) brightness(1.1);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.8) brightness(1.1);
+  border-radius: var(--radius);
+
+  background:
+    linear-gradient(
+      to bottom,
+      hsla(0 0% 100% / 0.18),
+      hsla(var(--glass-bg))
+    );
+
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%) brightness(1.08);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%) brightness(1.08);
 
   border: 1px solid hsla(var(--glass-border));
-  border-radius: var(--radius);
 
   box-shadow:
     inset 0 1px 0 hsla(var(--glass-highlight)),
-    inset 0 -1px 0 hsla(0 0% 0% / 0.15),
-    0 10px 30px hsla(var(--glass-shadow));
+    inset 0 -1px 0 hsla(0 0% 0% / 0.12),
+    0 8px 24px hsla(var(--glass-shadow));
+
+  transition: transform .35s ease, box-shadow .35s ease;
 }
   
-  .glass::before {
+  @keyframes glassShimmer {
+  from { transform: translateX(-120%); }
+  to { transform: translateX(120%); }
+}
+
+.glass::before {
   content: "";
   position: absolute;
-  inset: -40%;
+  inset: -30%;
   border-radius: inherit;
 
   background: linear-gradient(
     120deg,
-    transparent 35%,
-    hsla(0 0% 100% / 0.45),
-    transparent 65%
+    transparent 40%,
+    hsla(0 0% 100% / 0.35),
+    transparent 60%
   );
 
-  opacity: .25;
-  animation: glassShimmer 8s linear infinite;
+  opacity: .18;
+  animation: glassShimmer 9s linear infinite;
   pointer-events: none;
-  }
+}
 
   .glass::after {
   content: "";
@@ -176,19 +185,18 @@
 
   background: radial-gradient(
     circle at center,
-    hsla(0 0% 100% / 0.25),
-    transparent 65%
+    hsla(0 0% 100% / 0.22),
+    transparent 70%
   );
 
   opacity: 0;
-  transform: scale(.6);
+  transform: scale(.7);
   transition: opacity .35s ease, transform .35s ease;
-  pointer-events: none;
 }
 
 .glass:hover::after {
   opacity: 1;
-  transform: scale(1.4);
+  transform: scale(1.3);
 }
 
   @keyframes glassBreath {
@@ -237,15 +245,16 @@
 }
 
   .glass:active {
-  transform: scale(.98);
-  backdrop-filter: blur(70px) saturate(2.2);
+  transform: scale(.97);
   }
   
   .glass:hover {
-  backdrop-filter: blur(60px) saturate(2);
-  transform: translateY(-2px);
-  transition: all .35s ease;
-  }
+  transform: translateY(-3px);
+  box-shadow:
+    inset 0 1px 0 hsla(var(--glass-highlight)),
+    inset 0 -1px 0 hsla(0 0% 0% / 0.12),
+    0 18px 40px rgba(0,0,0,.45);
+}
   .glow-sm {
     box-shadow: 0 0 20px hsl(var(--glow) / 0.2), 0 0 60px hsl(var(--glow) / 0.05);
   }
