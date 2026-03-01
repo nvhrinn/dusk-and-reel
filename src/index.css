@@ -50,10 +50,12 @@
     --surface-hover: 220 12% 18%;
     
     /* Liquid glass tokens */
-    --glass-bg: 220 15% 15% / 0.4;
-    --glass-border: 0 0% 100% / 0.08;
-    --glass-highlight: 0 0% 100% / 0.05;
-    --glass-blur: 24px;
+    /* Liquid glass tokens — enhanced */
+    --glass-bg: 220 20% 18% / 0.35;
+    --glass-border: 0 0% 100% / 0.12;
+    --glass-highlight: 0 0% 100% / 0.25;
+    --glass-shadow: 0 0% 0% / 0.45;
+    --glass-blur: 40px;
   }
 
   /* Color themes */
@@ -122,15 +124,24 @@
   }
 
   /* Liquid Glass Effect — iOS 26 style */
-  .glass {
-    background: hsla(var(--glass-bg));
-    backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
-    border: 1px solid hsla(var(--glass-border));
-    box-shadow:
-      inset 0 1px 0 0 hsla(var(--glass-highlight)),
-      0 8px 32px -8px rgba(0, 0, 0, 0.4);
-  }
+.glass {
+  position: relative;
+  background: linear-gradient(
+    to bottom,
+    hsla(0 0% 100% / 0.12),
+    hsla(var(--glass-bg))
+  );
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.8) brightness(1.1);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.8) brightness(1.1);
+
+  border: 1px solid hsla(var(--glass-border));
+  border-radius: var(--radius);
+
+  box-shadow:
+    inset 0 1px 0 hsla(var(--glass-highlight)),
+    inset 0 -1px 0 hsla(0 0% 0% / 0.15),
+    0 10px 30px hsla(var(--glass-shadow));
+}
 
   .glass-sm {
     background: hsla(var(--glass-bg));
@@ -141,16 +152,26 @@
   }
 
   .glass-strong {
-    background: hsla(220 15% 12% / 0.65);
-    backdrop-filter: blur(40px) saturate(1.8);
-    -webkit-backdrop-filter: blur(40px) saturate(1.8);
-    border: 1px solid hsla(0 0% 100% / 0.12);
-    box-shadow:
-      inset 0 1px 0 0 hsla(0 0% 100% / 0.08),
-      inset 0 -1px 0 0 hsla(0 0% 0% / 0.1),
-      0 16px 48px -12px rgba(0, 0, 0, 0.5);
-  }
+  background: linear-gradient(
+    to bottom,
+    hsla(0 0% 100% / 0.18),
+    hsla(220 20% 14% / 0.55)
+  );
+  backdrop-filter: blur(70px) saturate(2) brightness(1.15);
+  -webkit-backdrop-filter: blur(70px) saturate(2) brightness(1.15);
 
+  border: 1px solid hsla(0 0% 100% / 0.18);
+
+  box-shadow:
+    inset 0 2px 0 hsla(0 0% 100% / 0.18),
+    inset 0 -2px 0 hsla(0 0% 0% / 0.2),
+    0 25px 60px rgba(0,0,0,0.6);
+}
+  .glass:hover {
+  backdrop-filter: blur(60px) saturate(2);
+  transform: translateY(-2px);
+  transition: all .35s ease;
+  }
   .glow-sm {
     box-shadow: 0 0 20px hsl(var(--glow) / 0.2), 0 0 60px hsl(var(--glow) / 0.05);
   }
