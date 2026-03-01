@@ -128,49 +128,46 @@
   /* Liquid Glass Effect — iOS 26 style */
 .glass {
   position: relative;
-  overflow: hidden;
   border-radius: var(--radius);
 
-  background:
-    linear-gradient(
-      to bottom,
-      hsla(0 0% 100% / 0.18),
-      hsla(var(--glass-bg))
-    );
+  /* ⚠️ jangan pakai overflow hidden untuk navbar */
+  overflow: visible;
 
-  backdrop-filter: blur(var(--glass-blur)) saturate(160%) brightness(1.08);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%) brightness(1.08);
+  /* fallback background supaya tidak hilang */
+  background: linear-gradient(
+    to bottom,
+    hsla(0 0% 100% / 0.16),
+    hsla(var(--glass-bg))
+  );
+
+  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
 
   border: 1px solid hsla(var(--glass-border));
 
   box-shadow:
     inset 0 1px 0 hsla(var(--glass-highlight)),
-    inset 0 -1px 0 hsla(0 0% 0% / 0.12),
     0 8px 24px hsla(var(--glass-shadow));
 
-  transition: transform .35s ease, box-shadow .35s ease;
+  transform: translateZ(0);
+  will-change: backdrop-filter;
 }
   
-  @keyframes glassShimmer {
-  from { transform: translateX(-120%); }
-  to { transform: translateX(120%); }
-}
 
 .glass::before {
   content: "";
   position: absolute;
-  inset: -30%;
+  inset: 0;
   border-radius: inherit;
 
   background: linear-gradient(
     120deg,
-    transparent 40%,
-    hsla(0 0% 100% / 0.35),
-    transparent 60%
+    transparent,
+    hsla(0 0% 100% / 0.15),
+    transparent
   );
 
-  opacity: .18;
-  animation: glassShimmer 9s linear infinite;
+  opacity: .25;
   pointer-events: none;
 }
 
@@ -191,9 +188,10 @@
   transition: opacity .35s ease, transform .35s ease;
 }
 
-.glass:hover::after {
-  opacity: 1;
-  transform: scale(1.3);
+.glass:hover {
+  box-shadow:
+    inset 0 1px 0 hsla(var(--glass-highlight)),
+    0 12px 30px rgba(0,0,0,.35);
 }
 
   @keyframes glassBreath {
@@ -207,13 +205,14 @@
   }
 }
 
-  .glass-sm {
-    background: hsla(var(--glass-bg));
-    backdrop-filter: blur(12px) saturate(1.4);
-    -webkit-backdrop-filter: blur(12px) saturate(1.4);
-    border: 1px solid hsla(var(--glass-border));
-    box-shadow: inset 0 1px 0 0 hsla(var(--glass-highlight));
-  }
+.glass-sm {
+  background: hsla(var(--glass-bg));
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  border: 1px solid hsla(var(--glass-border));
+
+  transform: translateZ(0);
+}
 
   .glass::before,
 .glass::after {
