@@ -16,34 +16,6 @@ async function fetchPage(url: string) {
   return cheerio.load(html);
 }
 
-//beutifier line subtitles
-
-function formatSubtitleLines(text: string, maxChars = 38): string {
-  const lines = text.split("\n").flatMap(line => {
-    const words = line.split(" ");
-    const result: string[] = [];
-    let current = "";
-
-    for (const word of words) {
-      if ((current + " " + word).trim().length <= maxChars) {
-        current = (current + " " + word).trim();
-      } else {
-        if (current) result.push(current);
-        current = word;
-      }
-    }
-    if (current) result.push(current);
-    return result;
-  });
-
-  // Maksimal 2 baris (standar subtitle)
-  if (lines.length > 2) {
-    const joined = lines.join(" ");
-    return formatSubtitleLines(joined, maxChars);
-  }
-  return lines.join("\n");
-}
-
 function parseAnimeCard($: cheerio.CheerioAPI, el: cheerio.Element) {
   return {
     name: $(el).find(".film-name .dynamic-name").text().trim(),
@@ -514,7 +486,7 @@ Deno.serve(async (req) => {
   const subText = await subRes.text();
   const lines = subText.split("\n");
 
-  const cues: { timestamp: string; text: string }[] = [];
+  const cues: { timestamp: string; text: string[] }[] = [];
 
   let i = 0;
   while (i < lines.length) {
@@ -532,8 +504,7 @@ Deno.serve(async (req) => {
 
       cues.push({
         timestamp,
-        // ✅ JAGA LINE BREAK
-        text: textLines.join("\n")
+        text: textLines
       });
     } else {
       i++;
@@ -633,15 +604,16 @@ Deno.serve(async (req) => {
     const batch = cues.slice(b, b + BATCH_SIZE);
     const translations = await translateTexts(batch.map(c => c.text));
 
-    batch.forEach((cue, idx) => {
-      const finalText = formatSubtitleLines(
-  translations[idx] || cue.text
-);
+    for (let b = 0; b < cues.length; b++) {
+  const cue = cues[b];
 
-translatedCues.push(
-  `${cue.timestamp}\n${finalText}`
-);
-    });
+  // translate setiap baris
+  const translations = await translateTexts(cue.text);
+
+  translatedCues.push(
+    cue.timestamp + "\n" + translations.join("\n")
+  );
+}
   }
 
   const vtt = "WEBVTT\n\n" + translatedCues.join("\n\n");
