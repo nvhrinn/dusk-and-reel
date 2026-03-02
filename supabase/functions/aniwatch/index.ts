@@ -478,80 +478,93 @@ Deno.serve(async (req) => {
       }
 
       case 'translate-subtitle': {
-        if (!subtitleUrl) throw new Error("subtitleUrl required");
+  if (!subtitleUrl) throw new Error("subtitleUrl required");
 
-        const subRes = await fetch(subtitleUrl);
-        const subText = await subRes.text();
+  const subRes = await fetch(subtitleUrl);
+  const subText = await subRes.text();
 
-        // Parse VTT: extract cue blocks (timestamp + text)
-        const lines = subText.split("\n");
-        const cues: { index: number; timestamp: string; text: string }[] = [];
-        let i = 0;
-        while (i < lines.length) {
-          const line = lines[i].trim();
-          // Match timestamp lines like "00:00:01.000 --> 00:00:04.000"
-          if (line.includes("-->")) {
-            const timestamp = line;
-            const textLines: string[] = [];
-            i++;
-            while (i < lines.length && lines[i].trim() !== "") {
-              textLines.push(lines[i].trim());
-              i++;
-            }
-            cues.push({ index: cues.length, timestamp, text: textLines.join("\n") });
-          } else {
-            i++;
-          }
-        }
+  const lines = subText.split("\n");
+  const cues: { timestamp: string; text: string }[] = [];
 
-        if (cues.length === 0) throw new Error("No subtitle cues found");
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i].trim();
 
-        // Batch translate using LibreTranslate
-        const BATCH_SIZE = 30;
-        const translatedCues: string[] = [];
+    if (line.includes("-->")) {
+      const timestamp = line;
+      const textLines: string[] = [];
+      i++;
 
-        for (let b = 0; b < cues.length; b += BATCH_SIZE) {
-          const batch = cues.slice(b, b + BATCH_SIZE);
-          const textsToTranslate = batch.map((c) => c.text);
-
-          try {
-            const ltRes = await fetch("https://de.libretranslate.com/translate", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                q: textsToTranslate,
-                source: "en",
-                target: "id",
-                format: "text",
-                api_key: "",
-              }),
-            });
-
-            const ltData = await ltRes.json();
-            // ltData.translatedText is an array when q is an array
-            const translations: string[] = Array.isArray(ltData.translatedText)
-              ? ltData.translatedText
-              : [ltData.translatedText || ""];
-
-            for (let idx = 0; idx < batch.length; idx++) {
-              const cue = batch[idx];
-              const trans = translations[idx] || cue.text;
-              translatedCues.push(`${cue.timestamp}\n${trans}`);
-            }
-          } catch (e) {
-            // Fallback: keep original text if translation fails
-            for (const cue of batch) {
-              translatedCues.push(`${cue.timestamp}\n${cue.text}`);
-            }
-          }
-        }
-
-        // Build VTT output
-        const vtt = "WEBVTT\n\n" + translatedCues.join("\n\n");
-
-        result = { vtt };
-        break;
+      while (i < lines.length && lines[i].trim() !== "") {
+        textLines.push(lines[i].trim());
+        i++;
       }
+
+      cues.push({
+        timestamp,
+        text: textLines.join(" ")
+      });
+    } else {
+      i++;
+    }
+  }
+
+  if (!cues.length) throw new Error("No subtitle cues found");
+
+  const BATCH_SIZE = 20; // kecilin biar aman
+  const translatedCues: string[] = [];
+
+  for (let b = 0; b < cues.length; b += BATCH_SIZE) {
+    const batch = cues.slice(b, b + BATCH_SIZE);
+    const textsToTranslate = batch.map(c => c.text);
+
+    try {
+      const ltRes = await fetch("https://libretranslate.de/translate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          q: textsToTranslate,
+          source: "en",
+          target: "id",
+          format: "text"
+        })
+      });
+
+      const ltData = await ltRes.json();
+
+      // FIX handling response
+      let translations: string[] = [];
+
+      if (Array.isArray(ltData.translatedText)) {
+        translations = ltData.translatedText;
+      } else if (typeof ltData.translatedText === "string") {
+        translations = [ltData.translatedText];
+      } else if (Array.isArray(ltData)) {
+        translations = ltData.map((t: any) => t.translatedText);
+      }
+
+      for (let idx = 0; idx < batch.length; idx++) {
+        const cue = batch[idx];
+        const trans = translations[idx] || cue.text;
+
+        translatedCues.push(`${cue.timestamp}\n${trans}`);
+      }
+
+    } catch (err) {
+      // fallback kalau gagal
+      for (const cue of batch) {
+        translatedCues.push(`${cue.timestamp}\n${cue.text}`);
+      }
+    }
+  }
+
+  const vtt = "WEBVTT\n\n" + translatedCues.join("\n\n");
+
+  result = { vtt };
+  break;
+}
 
       default:
         return new Response(JSON.stringify({ error: "Invalid action" }), {
