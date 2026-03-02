@@ -562,7 +562,12 @@ Deno.serve(async (req) => {
 
   const vtt = "WEBVTT\n\n" + translatedCues.join("\n\n");
 
-  result = { vtt };
+  return new Response(vtt, {
+    headers: {
+      "Content-Type": "text/vtt",
+      "Access-Control-Allow-Origin": "*"
+    }
+  });
   break;
 }
 
