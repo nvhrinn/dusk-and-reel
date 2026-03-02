@@ -1,4 +1,4 @@
-import * as cheerio from "npm:cheerio@1.0.0";
+import * as cheerio from "npm:cheerio@1.0.0-rc.12";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { action, query, page, id, episodeId, sourceId } = await req.json();
+    const { action, query, page, id, episodeId, sourceId, subtitleUrl } = await req.json();
 
     let result: unknown;
 
@@ -474,6 +474,92 @@ Deno.serve(async (req) => {
             outro: sourcesData.outro || { start: 0, end: 0 },
           };
         }
+        break;
+      }
+
+      case 'translate-subtitle': {
+        if (!subtitleUrl) throw new Error("subtitleUrl required");
+
+        const subRes = await fetch(subtitleUrl);
+        const subText = await subRes.text();
+        const subText = await subRes.text();
+
+        // Parse VTT: extract cue blocks (timestamp + text)
+        const lines = subText.split("\n");
+        const cues: { index: number; timestamp: string; text: string }[] = [];
+        let i = 0;
+        while (i < lines.length) {
+          const line = lines[i].trim();
+          // Match timestamp lines like "00:00:01.000 --> 00:00:04.000"
+          if (line.includes("-->")) {
+            const timestamp = line;
+            const textLines: string[] = [];
+            i++;
+            while (i < lines.length && lines[i].trim() !== "") {
+              textLines.push(lines[i].trim());
+              i++;
+            }
+            cues.push({ index: cues.length, timestamp, text: textLines.join("\n") });
+          } else {
+            i++;
+          }
+        }
+
+        if (cues.length === 0) throw new Error("No subtitle cues found");
+
+        // Batch translate using AI gateway
+        const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+        if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+        // Split cues into batches of 50 for efficiency
+        const BATCH_SIZE = 50;
+        const translatedCues: string[] = [];
+
+        for (let b = 0; b < cues.length; b += BATCH_SIZE) {
+          const batch = cues.slice(b, b + BATCH_SIZE);
+          const numberedText = batch.map((c, idx) => `[${idx}] ${c.text}`).join("\n");
+
+          const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+            },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash-lite",
+              messages: [
+                {
+                  role: "system",
+                  content: "You are a subtitle translator. Translate the following English subtitle lines to Indonesian. Keep the [number] prefix on each line. Only output the translated lines, nothing else. Keep the same format. Do not add explanations."
+                },
+                { role: "user", content: numberedText }
+              ],
+              temperature: 0.1,
+            }),
+          });
+
+          const aiData = await aiRes.json();
+          const translated = aiData.choices?.[0]?.message?.content || "";
+
+          // Parse translated lines back
+          const transLines = translated.split("\n").filter((l: string) => l.trim());
+          const transMap = new Map<number, string>();
+          for (const tl of transLines) {
+            const m = tl.match(/^\[(\d+)\]\s*(.*)/);
+            if (m) transMap.set(parseInt(m[1]), m[2]);
+          }
+
+          for (let idx = 0; idx < batch.length; idx++) {
+            const cue = batch[idx];
+            const trans = transMap.get(idx) || cue.text;
+            translatedCues.push(`${cue.timestamp}\n${trans}`);
+          }
+        }
+
+        // Build VTT output
+        const vtt = "WEBVTT\n\n" + translatedCues.join("\n\n");
+
+        result = { vtt };
         break;
       }
 
