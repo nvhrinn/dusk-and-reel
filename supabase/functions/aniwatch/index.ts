@@ -16,6 +16,34 @@ async function fetchPage(url: string) {
   return cheerio.load(html);
 }
 
+//beutifier line subtitles
+
+function formatSubtitleLines(text: string, maxChars = 38): string {
+  const lines = text.split("\n").flatMap(line => {
+    const words = line.split(" ");
+    const result: string[] = [];
+    let current = "";
+
+    for (const word of words) {
+      if ((current + " " + word).trim().length <= maxChars) {
+        current = (current + " " + word).trim();
+      } else {
+        if (current) result.push(current);
+        current = word;
+      }
+    }
+    if (current) result.push(current);
+    return result;
+  });
+
+  // Maksimal 2 baris (standar subtitle)
+  if (lines.length > 2) {
+    const joined = lines.join(" ");
+    return formatSubtitleLines(joined, maxChars);
+  }
+  return lines.join("\n");
+}
+
 function parseAnimeCard($: cheerio.CheerioAPI, el: cheerio.Element) {
   return {
     name: $(el).find(".film-name .dynamic-name").text().trim(),
@@ -606,9 +634,13 @@ Deno.serve(async (req) => {
     const translations = await translateTexts(batch.map(c => c.text));
 
     batch.forEach((cue, idx) => {
-      translatedCues.push(
-        `${cue.timestamp}\n${translations[idx] || cue.text}`
-      );
+      const finalText = formatSubtitleLines(
+  translations[idx] || cue.text
+);
+
+translatedCues.push(
+  `${cue.timestamp}\n${finalText}`
+);
     });
   }
 
