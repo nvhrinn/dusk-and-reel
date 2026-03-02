@@ -95,4 +95,5 @@ export const aniwatchApi = {
   episodes: (id: string) => callApi<Episode[]>({ action: "episodes", id: normalizeAnimeId(id) }),
   servers: (episodeId: string) => callApi<{ sub: Server[]; dub: Server[] }>({ action: "servers", episodeId }),
   watch: (sourceId: string) => callApi<StreamData>({ action: "watch", sourceId }),
+  translateSubtitle: (subtitleUrl: string) => callApi<{ vtt: string }>({ action: "translate-subtitle", subtitleUrl }),
 };

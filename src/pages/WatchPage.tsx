@@ -4,7 +4,7 @@ import { aniwatchApi } from "@/lib/api";
 import VideoPlayer from "@/components/VideoPlayer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Monitor, Volume2, Globe } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 
 const WatchPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -27,7 +27,6 @@ const WatchPage = () => {
     enabled: !!epId,
   });
 
-  // Filter to megacloud only
   const megacloudServers = servers
     ? {
         sub: servers.sub?.filter((s) => s.server === "megacloud") || [],
@@ -35,7 +34,6 @@ const WatchPage = () => {
       }
     : null;
 
-  // Also fetch sub stream to cache subtitle tracks for dub usage
   const subSourceId = megacloudServers?.sub?.[0]?.sourceId || null;
   const { data: subStream } = useQuery({
     queryKey: ["watch-sub-tracks", subSourceId],
@@ -45,14 +43,12 @@ const WatchPage = () => {
     staleTime: Infinity,
   });
 
-  // Cache sub tracks when available
   useEffect(() => {
     if (subStream?.tracks?.length) {
       setCachedSubTracks(subStream.tracks);
     }
   }, [subStream]);
 
-  // Auto-select megacloud server when audio type or servers change
   useEffect(() => {
     if (!megacloudServers) return;
     const list = audioType === "sub" ? megacloudServers.sub : megacloudServers.dub;
@@ -77,14 +73,47 @@ const WatchPage = () => {
   const currentEp = episodes?.find((e) => e.epId === epId);
   const streamUrl = stream?.sources?.[0]?.url;
 
-  // Use stream's own tracks, but fallback to cached sub tracks if empty (e.g. dub has no subs)
-  const effectiveTracks = stream?.tracks?.filter(
-    (t) => t.kind === "captions" || t.kind === "subtitles"
-  )?.length
-    ? stream.tracks
-    : cachedSubTracks.length
-    ? cachedSubTracks
-    : stream?.tracks || [];
+  // Base tracks: stream's own or cached sub tracks
+  const baseTracks = useMemo(() => {
+    const subs = stream?.tracks?.filter(
+      (t) => t.kind === "captions" || t.kind === "subtitles"
+    );
+    if (subs?.length) return stream!.tracks;
+    if (cachedSubTracks.length) return cachedSubTracks;
+    return stream?.tracks || [];
+  }, [stream, cachedSubTracks]);
+
+  // Find English subtitle for auto-translation if no Indonesian exists
+  const englishSubUrl = useMemo(() => {
+    const subs = baseTracks.filter((t) => t.kind === "captions" || t.kind === "subtitles");
+    const hasIndo = subs.some((t) => {
+      const l = t.label.toLowerCase();
+      return l.includes("indonesian") || l.includes("indonesia");
+    });
+    if (hasIndo) return null;
+    const eng = subs.find((t) => t.label.toLowerCase().includes("english"));
+    return eng?.file || null;
+  }, [baseTracks]);
+
+  // Auto-translate English → Indonesian
+  const { data: translatedVtt, isLoading: translating } = useQuery({
+    queryKey: ["translate-sub", englishSubUrl],
+    queryFn: () => aniwatchApi.translateSubtitle(englishSubUrl!),
+    enabled: !!englishSubUrl,
+    staleTime: Infinity,
+    retry: 1,
+  });
+
+  // Merge translated Indonesian track
+  const effectiveTracks = useMemo(() => {
+    const tracks = [...baseTracks];
+    if (translatedVtt?.vtt) {
+      const blob = new Blob([translatedVtt.vtt], { type: "text/vtt" });
+      const blobUrl = URL.createObjectURL(blob);
+      tracks.unshift({ file: blobUrl, label: "Indonesian (Auto)", kind: "captions" });
+    }
+    return tracks;
+  }, [baseTracks, translatedVtt]);
 
   const handlePlayerError = useCallback(() => {}, []);
 
