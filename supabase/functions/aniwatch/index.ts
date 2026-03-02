@@ -1,4 +1,4 @@
-import * as cheerio from "npm:cheerio@1.0.0-rc.12";
+import * as cheerio from "https://esm.sh/cheerio@1.0.0-rc.12";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -478,98 +478,225 @@ Deno.serve(async (req) => {
       }
 
       case 'translate-subtitle': {
-  if (!subtitleUrl) throw new Error("subtitleUrl required");
+        if (!subtitleUrl) throw new Error("subtitleUrl required");
 
-  const subRes = await fetch(subtitleUrl);
-  const subText = await subRes.text();
+        const subRes = await fetch(subtitleUrl);
+        if (!subRes.ok) throw new Error("Failed to fetch subtitle source");
+        const subText = await subRes.text();
 
-  const lines = subText.split("\n");
-  const cues: { timestamp: string; text: string }[] = [];
+        const lines = subText.split("\n");
+        const cues: { timestamp: string; text: string }[] = [];
 
-  let i = 0;
-  while (i < lines.length) {
-    const line = lines[i].trim();
+        let i = 0;
+        while (i < lines.length) {
+          const line = lines[i].trim();
 
-    if (line.includes("-->")) {
-      const timestamp = line;
-      const textLines: string[] = [];
-      i++;
+          if (line.includes("-->")) {
+            const timestamp = line;
+            const textLines: string[] = [];
+            i++;
 
-      while (i < lines.length && lines[i].trim() !== "") {
-        textLines.push(lines[i].trim());
-        i++;
+            while (i < lines.length && lines[i].trim() !== "") {
+              textLines.push(lines[i].trim());
+              i++;
+            }
+
+            cues.push({
+              timestamp,
+              text: textLines.join(" ")
+            });
+          } else {
+            i++;
+          }
+        }
+
+        if (!cues.length) throw new Error("No subtitle cues found");
+
+        const BATCH_SIZE = 20;
+        const translatedCues: string[] = [];
+
+        const translateTexts = async (texts: string[]): Promise<string[]> => {
+          const endpoint = "https://de.libretranslate.com/translate";
+
+          // Try bulk translation first
+          try {
+            const bulkRes = await fetch(endpoint, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                q: texts,
+                source: "auto",
+                target: "id",
+                format: "text",
+                alternatives: 1,
+                api_key: ""
+              })
+            });
+
+            if (bulkRes.ok) {
+              const bulkData = await bulkRes.json();
+
+              if (Array.isArray(bulkData?.translatedText)) {
+                return bulkData.translatedText;
+              }
+
+              if (typeof bulkData?.translatedText === "string") {
+                return [bulkData.translatedText];
+              }
+
+              if (Array.isArray(bulkData)) {
+                return bulkData.map((t: any) => t?.translatedText ?? "");
+              }
+            }
+          } catch {
+            // continue to per-text fallback
+          }
+
+          // Fallback: translate line-by-line for better compatibility
+          const perTextResults = await Promise.all(
+            texts.map(async (text) => {
+              try {
+                const singleRes = await fetch(endpoint, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    q: text,
+                    source: "auto",
+                    target: "id",
+                    format: "text",
+                    alternatives: 1,
+                    api_key: ""
+                  })
+                });
+
+                if (!singleRes.ok) return text;
+                const singleData = await singleRes.json();
+                if (typeof singleData?.translatedText === "string") return singleData.translatedText;
+                return text;
+              } catch {
+                return text;
+              }
+            })
+          );
+
+          const hasTranslatedText = perTextResults.some((value, idx) =>
+            value.trim().toLowerCase() !== texts[idx].trim().toLowerCase()
+          );
+          if (hasTranslatedText) return perTextResults;
+
+          // Fallback 2: Google public translate endpoint
+          try {
+            const googleResults = await Promise.all(
+              texts.map(async (text) => {
+                try {
+                  const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=id&dt=t&q=${encodeURIComponent(text)}`;
+                  const googleRes = await fetch(url);
+                  if (!googleRes.ok) return text;
+                  const googleData = await googleRes.json();
+                  const translated = Array.isArray(googleData?.[0])
+                    ? googleData[0].map((part: any) => part?.[0] ?? "").join("")
+                    : "";
+                  return translated || text;
+                } catch {
+                  return text;
+                }
+              })
+            );
+
+            const hasGoogleTranslated = googleResults.some((value, idx) =>
+              value.trim().toLowerCase() !== texts[idx].trim().toLowerCase()
+            );
+            if (hasGoogleTranslated) return googleResults;
+          } catch {
+            // continue to next fallback
+          }
+
+          // Fallback 3: MyMemory translate
+          try {
+            const memoryResults = await Promise.all(
+              texts.map(async (text) => {
+                try {
+                  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|id`;
+                  const memoryRes = await fetch(url);
+                  if (!memoryRes.ok) return text;
+                  const memoryData = await memoryRes.json();
+                  const translated = memoryData?.responseData?.translatedText;
+                  return typeof translated === "string" && translated.trim() ? translated : text;
+                } catch {
+                  return text;
+                }
+              })
+            );
+
+            const hasMemoryTranslated = memoryResults.some((value, idx) =>
+              value.trim().toLowerCase() !== texts[idx].trim().toLowerCase()
+            );
+            if (hasMemoryTranslated) return memoryResults;
+          } catch {
+            // continue to final fallback
+          }
+
+          // Final fallback: Lovable AI translation (no user API key required)
+          try {
+            const aiKey = Deno.env.get("LOVABLE_API_KEY");
+            if (!aiKey) return perTextResults;
+
+            const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${aiKey}`
+              },
+              body: JSON.stringify({
+                model: "google/gemini-3-flash-preview",
+                temperature: 0.2,
+                messages: [
+                  {
+                    role: "system",
+                    content: "Translate English subtitle lines into natural Indonesian. Return ONLY a valid JSON array of strings with exact same order and length."
+                  },
+                  {
+                    role: "user",
+                    content: JSON.stringify(texts)
+                  }
+                ]
+              })
+            });
+
+            if (!aiRes.ok) return perTextResults;
+            const aiData = await aiRes.json();
+            const raw = aiData?.choices?.[0]?.message?.content || "[]";
+            const cleaned = raw.replace(/```json\n?|```/g, "").trim();
+            const parsed = JSON.parse(cleaned);
+
+            if (!Array.isArray(parsed)) return perTextResults;
+
+            return texts.map((original, idx) => {
+              const translated = parsed[idx];
+              return typeof translated === "string" && translated.trim() ? translated : original;
+            });
+          } catch {
+            return perTextResults;
+          }
+        };
+
+        for (let b = 0; b < cues.length; b += BATCH_SIZE) {
+          const batch = cues.slice(b, b + BATCH_SIZE);
+          const textsToTranslate = batch.map(c => c.text);
+
+          const translations = await translateTexts(textsToTranslate);
+
+          for (let idx = 0; idx < batch.length; idx++) {
+            const cue = batch[idx];
+            const trans = translations[idx] || cue.text;
+            translatedCues.push(`${cue.timestamp}\n${trans}`);
+          }
+        }
+
+        const vtt = "WEBVTT\n\n" + translatedCues.join("\n\n");
+        result = { vtt };
+        break;
       }
-
-      cues.push({
-        timestamp,
-        text: textLines.join(" ")
-      });
-    } else {
-      i++;
-    }
-  }
-
-  if (!cues.length) throw new Error("No subtitle cues found");
-
-  const BATCH_SIZE = 20; // kecilin biar aman
-  const translatedCues: string[] = [];
-
-  for (let b = 0; b < cues.length; b += BATCH_SIZE) {
-    const batch = cues.slice(b, b + BATCH_SIZE);
-    const textsToTranslate = batch.map(c => c.text);
-
-    try {
-      const ltRes = await fetch("https://libretranslate.de/translate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          q: textsToTranslate,
-          source: "en",
-          target: "id",
-          format: "text"
-        })
-      });
-
-      const ltData = await ltRes.json();
-
-      // FIX handling response
-      let translations: string[] = [];
-
-      if (Array.isArray(ltData.translatedText)) {
-        translations = ltData.translatedText;
-      } else if (typeof ltData.translatedText === "string") {
-        translations = [ltData.translatedText];
-      } else if (Array.isArray(ltData)) {
-        translations = ltData.map((t: any) => t.translatedText);
-      }
-
-      for (let idx = 0; idx < batch.length; idx++) {
-        const cue = batch[idx];
-        const trans = translations[idx] || cue.text;
-
-        translatedCues.push(`${cue.timestamp}\n${trans}`);
-      }
-
-    } catch (err) {
-      // fallback kalau gagal
-      for (const cue of batch) {
-        translatedCues.push(`${cue.timestamp}\n${cue.text}`);
-      }
-    }
-  }
-
-  const vtt = "WEBVTT\n\n" + translatedCues.join("\n\n");
-
-  return new Response(vtt, {
-    headers: {
-      "Content-Type": "text/vtt",
-      "Access-Control-Allow-Origin": "*"
-    }
-  });
-  break;
-}
 
       default:
         return new Response(JSON.stringify({ error: "Invalid action" }), {
