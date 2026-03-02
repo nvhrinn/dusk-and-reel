@@ -482,7 +482,6 @@ Deno.serve(async (req) => {
 
         const subRes = await fetch(subtitleUrl);
         const subText = await subRes.text();
-        const subText = await subRes.text();
 
         // Parse VTT: extract cue blocks (timestamp + text)
         const lines = subText.split("\n");
