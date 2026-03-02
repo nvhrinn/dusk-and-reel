@@ -506,52 +506,43 @@ Deno.serve(async (req) => {
 
         if (cues.length === 0) throw new Error("No subtitle cues found");
 
-        // Batch translate using AI gateway
-        const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-        if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
-
-        // Split cues into batches of 50 for efficiency
-        const BATCH_SIZE = 50;
+        // Batch translate using LibreTranslate
+        const BATCH_SIZE = 30;
         const translatedCues: string[] = [];
 
         for (let b = 0; b < cues.length; b += BATCH_SIZE) {
           const batch = cues.slice(b, b + BATCH_SIZE);
-          const numberedText = batch.map((c, idx) => `[${idx}] ${c.text}`).join("\n");
+          const textsToTranslate = batch.map((c) => c.text);
 
-          const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-            },
-            body: JSON.stringify({
-              model: "google/gemini-2.5-flash-lite",
-              messages: [
-                {
-                  role: "system",
-                  content: "You are a subtitle translator. Translate the following English subtitle lines to Indonesian. Keep the [number] prefix on each line. Only output the translated lines, nothing else. Keep the same format. Do not add explanations."
-                },
-                { role: "user", content: numberedText }
-              ],
-              temperature: 0.1,
-            }),
-          });
+          try {
+            const ltRes = await fetch("https://de.libretranslate.com/translate", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                q: textsToTranslate,
+                source: "en",
+                target: "id",
+                format: "text",
+                api_key: "",
+              }),
+            });
 
-          const aiData = await aiRes.json();
-          const translated = aiData.choices?.[0]?.message?.content || "";
+            const ltData = await ltRes.json();
+            // ltData.translatedText is an array when q is an array
+            const translations: string[] = Array.isArray(ltData.translatedText)
+              ? ltData.translatedText
+              : [ltData.translatedText || ""];
 
-          // Parse translated lines back
-          const transLines = translated.split("\n").filter((l: string) => l.trim());
-          const transMap = new Map<number, string>();
-          for (const tl of transLines) {
-            const m = tl.match(/^\[(\d+)\]\s*(.*)/);
-            if (m) transMap.set(parseInt(m[1]), m[2]);
-          }
-
-          for (let idx = 0; idx < batch.length; idx++) {
-            const cue = batch[idx];
-            const trans = transMap.get(idx) || cue.text;
-            translatedCues.push(`${cue.timestamp}\n${trans}`);
+            for (let idx = 0; idx < batch.length; idx++) {
+              const cue = batch[idx];
+              const trans = translations[idx] || cue.text;
+              translatedCues.push(`${cue.timestamp}\n${trans}`);
+            }
+          } catch (e) {
+            // Fallback: keep original text if translation fails
+            for (const cue of batch) {
+              translatedCues.push(`${cue.timestamp}\n${cue.text}`);
+            }
           }
         }
 
