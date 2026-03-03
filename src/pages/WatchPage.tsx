@@ -177,7 +177,15 @@ const WatchPage = () => {
   // Compute subtitle options for dropdown
   const subtitleOptions = useMemo(() => {
     const subs = effectiveTracks.filter((t) => t.kind === "captions" || t.kind === "subtitles");
-    const sorted = subs.sort((a, b) => {
+    // Deduplicate by label
+    const seen = new Set<string>();
+    const unique = subs.filter((t) => {
+      const key = t.label.toLowerCase().trim();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    const sorted = unique.sort((a, b) => {
       const priority = (label: string) => {
         const l = label.toLowerCase();
         if (l.includes("indonesian") || l.includes("indonesia") || l.includes("ind")) return 0;
