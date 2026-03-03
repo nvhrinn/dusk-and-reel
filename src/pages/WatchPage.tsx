@@ -288,8 +288,11 @@ const WatchPage = () => {
             )}
 
             {/* Server badge */}
-            <span className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-card border border-border text-muted-foreground">
+            <span className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-card border border-primary/20 text-muted-foreground">
               <Monitor className="w-3.5 h-3.5" /> MegaCloud
+            </span>
+            <span className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-card border border-border text-muted-foreground">
+              <Monitor className="w-3.5 h-3.5" /> RapidCloud
             </span>
 
             {/* Quality dropdown */}
