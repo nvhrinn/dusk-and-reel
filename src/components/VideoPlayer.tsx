@@ -37,7 +37,15 @@ const VideoPlayer = ({
 
   const subtitleTracks = useMemo(() => {
     const subs = tracks?.filter((t) => t.kind === "captions" || t.kind === "subtitles") || [];
-    return subs.sort((a, b) => {
+    // Deduplicate by label — keep first occurrence only
+    const seen = new Set<string>();
+    const unique = subs.filter((t) => {
+      const key = t.label.toLowerCase().trim();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    return unique.sort((a, b) => {
       const priority = (label: string) => {
         const l = label.toLowerCase();
         if (l.includes("indonesian") || l.includes("indonesia") || l.includes("ind")) return 0;
