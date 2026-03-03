@@ -1,10 +1,66 @@
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { aniwatchApi } from "@/lib/api";
-import VideoPlayer, { VideoPlayerHandle } from "@/components/VideoPlayer";
+import VideoPlayer from "@/components/VideoPlayer";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Monitor, Volume2, Languages, Settings } from "lucide-react";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { ArrowLeft, Monitor, Volume2, Languages, Settings, ChevronDown } from "lucide-react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+
+const Dropdown = ({
+  label,
+  icon: Icon,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  icon: React.ElementType;
+  value: string;
+  options: { label: string; value: string }[];
+  onChange: (value: string) => void;
+}) => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium bg-card border border-border hover:border-primary/40 transition-colors"
+      >
+        <Icon className="w-4 h-4 text-muted-foreground" />
+        <span className="text-muted-foreground">{label}:</span>
+        <span className="text-foreground">{value}</span>
+        <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="absolute top-full left-0 mt-1.5 min-w-[180px] z-30 rounded-xl bg-card border border-border shadow-lg overflow-hidden animate-fade-in">
+          {options.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => { onChange(opt.value); setOpen(false); }}
+              className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
+                opt.value === value
+                  ? "bg-primary text-primary-foreground font-medium"
+                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const WatchPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -14,8 +70,11 @@ const WatchPage = () => {
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [audioType, setAudioType] = useState<"sub" | "dub">("sub");
   const [cachedSubTracks, setCachedSubTracks] = useState<{ file: string; label: string; kind: string }[]>([]);
-  const [playerHandle, setPlayerHandle] = useState<VideoPlayerHandle | null>(null);
-  const [, forceUpdate] = useState(0);
+
+  // Player state lifted up
+  const [qualities, setQualities] = useState<{ height: number; index: number }[]>([]);
+  const [selectedQuality, setSelectedQuality] = useState<number>(-1);
+  const [selectedTrack, setSelectedTrack] = useState<number>(0);
 
   const { data: episodes } = useQuery({
     queryKey: ["episodes", id],
@@ -110,18 +169,41 @@ const WatchPage = () => {
   }, [baseTracks, translatedVtt]);
 
   const handlePlayerError = useCallback(() => {}, []);
-  const handlePlayerReady = useCallback((handle: VideoPlayerHandle) => {
-    setPlayerHandle(handle);
-    forceUpdate((n) => n + 1);
+  const handleQualitiesChange = useCallback((q: { height: number; index: number }[]) => {
+    setQualities(q);
+    setSelectedQuality(-1);
   }, []);
+
+  // Compute subtitle options for dropdown
+  const subtitleOptions = useMemo(() => {
+    const subs = effectiveTracks.filter((t) => t.kind === "captions" || t.kind === "subtitles");
+    const sorted = subs.sort((a, b) => {
+      const priority = (label: string) => {
+        const l = label.toLowerCase();
+        if (l.includes("indonesian") || l.includes("indonesia") || l.includes("ind")) return 0;
+        if (l.includes("english")) return 1;
+        return 2;
+      };
+      return priority(a.label) - priority(b.label);
+    });
+    return sorted.map((t, i) => ({ label: t.label, value: String(i) }));
+  }, [effectiveTracks]);
+
+  const qualityOptions = useMemo(() => {
+    const opts = [{ label: "Auto", value: "-1" }];
+    qualities
+      .sort((a, b) => b.height - a.height)
+      .forEach((q) => opts.push({ label: `${q.height}p`, value: String(q.index) }));
+    return opts;
+  }, [qualities]);
 
   const hasSub = megacloudServers && megacloudServers.sub.length > 0;
   const hasDub = megacloudServers && megacloudServers.dub.length > 0;
 
-  const qualities = playerHandle?.getQualities() || [];
-  const selectedQuality = playerHandle?.getSelectedQuality() ?? -1;
-  const subtitleTracks = playerHandle?.getSubtitleTracks() || [];
-  const selectedTrack = playerHandle?.getSelectedTrack() ?? 0;
+  const currentQualityLabel = selectedQuality === -1
+    ? "Auto"
+    : `${qualities.find((q) => q.index === selectedQuality)?.height || "?"}p`;
+  const currentSubLabel = subtitleOptions[selectedTrack]?.label || "—";
 
   return (
     <div className="min-h-screen pt-14 bg-background">
@@ -143,16 +225,13 @@ const WatchPage = () => {
             intro={stream?.intro}
             outro={stream?.outro}
             onError={handlePlayerError}
-            onReady={handlePlayerReady}
+            selectedTrack={selectedTrack}
+            selectedQuality={selectedQuality}
+            onQualitiesChange={handleQualitiesChange}
           />
         ) : stream?.embedUrl ? (
           <div className="w-full aspect-video rounded-lg overflow-hidden">
-            <iframe
-              src={stream.embedUrl}
-              className="w-full h-full"
-              allowFullScreen
-              allow="autoplay; encrypted-media"
-            />
+            <iframe src={stream.embedUrl} className="w-full h-full" allowFullScreen allow="autoplay; encrypted-media" />
           </div>
         ) : (
           <div className="w-full aspect-video rounded-lg bg-secondary flex items-center justify-center">
@@ -160,7 +239,7 @@ const WatchPage = () => {
           </div>
         )}
 
-        {/* Episode title + Controls */}
+        {/* Controls below player */}
         <div className="mt-4 space-y-4">
           {currentEp && (
             <h2 className="font-display font-bold text-lg">
@@ -169,116 +248,64 @@ const WatchPage = () => {
             </h2>
           )}
 
-          {/* Controls bar */}
-          {megacloudServers && (hasSub || hasDub) && (
-            <div className="flex flex-wrap items-center gap-3 p-3 rounded-2xl glass">
-              {/* Audio type */}
-              <div className="flex items-center gap-2">
-                <Volume2 className="w-4 h-4 text-muted-foreground" />
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Dub</span>
-                <div className="flex rounded-md overflow-hidden border border-border">
-                  {hasSub && (
-                    <button
-                      onClick={() => setAudioType("sub")}
-                      className={`px-3 py-1.5 text-sm font-medium transition-colors ${
-                        audioType === "sub"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-card text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      Japanese
-                    </button>
-                  )}
-                  {hasDub && (
-                    <button
-                      onClick={() => setAudioType("dub")}
-                      className={`px-3 py-1.5 text-sm font-medium transition-colors ${
-                        audioType === "dub"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-card text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      English
-                    </button>
-                  )}
-                </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Audio toggle */}
+            {megacloudServers && (hasSub || hasDub) && (
+              <div className="flex rounded-xl overflow-hidden border border-border">
+                {hasSub && (
+                  <button
+                    onClick={() => setAudioType("sub")}
+                    className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${
+                      audioType === "sub"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-card text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Volume2 className="w-3.5 h-3.5" /> SUB
+                  </button>
+                )}
+                {hasDub && (
+                  <button
+                    onClick={() => setAudioType("dub")}
+                    className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${
+                      audioType === "dub"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-card text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Volume2 className="w-3.5 h-3.5" /> DUB
+                  </button>
+                )}
               </div>
+            )}
 
-              <div className="w-px h-6 bg-border hidden sm:block" />
+            {/* Server badge */}
+            <span className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-card border border-border text-muted-foreground">
+              <Monitor className="w-3.5 h-3.5" /> MegaCloud
+            </span>
 
-              {/* Server badge */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Server</span>
-                <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-primary/10 text-primary border border-primary/20">
-                  <Monitor className="w-3.5 h-3.5" /> MegaCloud
-                </span>
-              </div>
+            {/* Quality dropdown */}
+            {qualityOptions.length > 1 && (
+              <Dropdown
+                label="Quality"
+                icon={Settings}
+                value={currentQualityLabel}
+                options={qualityOptions}
+                onChange={(v) => setSelectedQuality(Number(v))}
+              />
+            )}
 
-              {/* Quality selector */}
-              {qualities.length > 1 && (
-                <>
-                  <div className="w-px h-6 bg-border hidden sm:block" />
-                  <div className="flex items-center gap-2">
-                    <Settings className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Quality</span>
-                    <div className="flex rounded-md overflow-hidden border border-border">
-                      <button
-                        onClick={() => { playerHandle?.setQuality(-1); forceUpdate(n => n + 1); }}
-                        className={`px-3 py-1.5 text-sm font-medium transition-colors ${
-                          selectedQuality === -1
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-card text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        Auto
-                      </button>
-                      {qualities
-                        .sort((a, b) => b.height - a.height)
-                        .map((q) => (
-                          <button
-                            key={q.index}
-                            onClick={() => { playerHandle?.setQuality(q.index); forceUpdate(n => n + 1); }}
-                            className={`px-3 py-1.5 text-sm font-medium transition-colors ${
-                              selectedQuality === q.index
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-card text-muted-foreground hover:text-foreground"
-                            }`}
-                          >
-                            {q.height}p
-                          </button>
-                        ))}
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* Subtitle selector */}
-              {subtitleTracks.length > 0 && (
-                <>
-                  <div className="w-px h-6 bg-border hidden sm:block" />
-                  <div className="flex items-center gap-2">
-                    <Languages className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Subtitle</span>
-                    <div className="flex rounded-md overflow-hidden border border-border flex-wrap">
-                      {subtitleTracks.map((track, i) => (
-                        <button
-                          key={i}
-                          onClick={() => { playerHandle?.setTrack(i); forceUpdate(n => n + 1); }}
-                          className={`px-3 py-1.5 text-sm font-medium transition-colors ${
-                            i === selectedTrack
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-card text-muted-foreground hover:text-foreground"
-                          }`}
-                        >
-                          {track.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
+            {/* Subtitle dropdown */}
+            {subtitleOptions.length > 0 && (
+              <Dropdown
+                label="Subtitle"
+                icon={Languages}
+                value={currentSubLabel}
+                options={subtitleOptions}
+                onChange={(v) => setSelectedTrack(Number(v))}
+              />
+            )}
+          </div>
         </div>
 
         {/* Episode list */}
