@@ -1,9 +1,9 @@
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { aniwatchApi } from "@/lib/api";
-import VideoPlayer from "@/components/VideoPlayer";
+import VideoPlayer, { VideoPlayerHandle } from "@/components/VideoPlayer";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Monitor, Volume2, Globe } from "lucide-react";
+import { ArrowLeft, Monitor, Volume2, Languages, Settings } from "lucide-react";
 import { useState, useEffect, useCallback, useMemo } from "react";
 
 const WatchPage = () => {
@@ -14,6 +14,8 @@ const WatchPage = () => {
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [audioType, setAudioType] = useState<"sub" | "dub">("sub");
   const [cachedSubTracks, setCachedSubTracks] = useState<{ file: string; label: string; kind: string }[]>([]);
+  const [playerHandle, setPlayerHandle] = useState<VideoPlayerHandle | null>(null);
+  const [, forceUpdate] = useState(0);
 
   const { data: episodes } = useQuery({
     queryKey: ["episodes", id],
@@ -44,9 +46,7 @@ const WatchPage = () => {
   });
 
   useEffect(() => {
-    if (subStream?.tracks?.length) {
-      setCachedSubTracks(subStream.tracks);
-    }
+    if (subStream?.tracks?.length) setCachedSubTracks(subStream.tracks);
   }, [subStream]);
 
   useEffect(() => {
@@ -73,17 +73,13 @@ const WatchPage = () => {
   const currentEp = episodes?.find((e) => e.epId === epId);
   const streamUrl = stream?.sources?.[0]?.url;
 
-  // Base tracks: stream's own or cached sub tracks
   const baseTracks = useMemo(() => {
-    const subs = stream?.tracks?.filter(
-      (t) => t.kind === "captions" || t.kind === "subtitles"
-    );
+    const subs = stream?.tracks?.filter((t) => t.kind === "captions" || t.kind === "subtitles");
     if (subs?.length) return stream!.tracks;
     if (cachedSubTracks.length) return cachedSubTracks;
     return stream?.tracks || [];
   }, [stream, cachedSubTracks]);
 
-  // Find English subtitle for auto-translation if no Indonesian exists
   const englishSubUrl = useMemo(() => {
     const subs = baseTracks.filter((t) => t.kind === "captions" || t.kind === "subtitles");
     const hasIndo = subs.some((t) => {
@@ -95,8 +91,7 @@ const WatchPage = () => {
     return eng?.file || null;
   }, [baseTracks]);
 
-  // Auto-translate English → Indonesian
-  const { data: translatedVtt, isLoading: translating } = useQuery({
+  const { data: translatedVtt } = useQuery({
     queryKey: ["translate-sub", englishSubUrl],
     queryFn: () => aniwatchApi.translateSubtitle(englishSubUrl!),
     enabled: !!englishSubUrl,
@@ -104,7 +99,6 @@ const WatchPage = () => {
     retry: 1,
   });
 
-  // Merge translated Indonesian track
   const effectiveTracks = useMemo(() => {
     const tracks = [...baseTracks];
     if (translatedVtt?.vtt) {
@@ -116,14 +110,22 @@ const WatchPage = () => {
   }, [baseTracks, translatedVtt]);
 
   const handlePlayerError = useCallback(() => {}, []);
+  const handlePlayerReady = useCallback((handle: VideoPlayerHandle) => {
+    setPlayerHandle(handle);
+    forceUpdate((n) => n + 1);
+  }, []);
 
   const hasSub = megacloudServers && megacloudServers.sub.length > 0;
   const hasDub = megacloudServers && megacloudServers.dub.length > 0;
 
+  const qualities = playerHandle?.getQualities() || [];
+  const selectedQuality = playerHandle?.getSelectedQuality() ?? -1;
+  const subtitleTracks = playerHandle?.getSubtitleTracks() || [];
+  const selectedTrack = playerHandle?.getSelectedTrack() ?? 0;
+
   return (
     <div className="min-h-screen pt-14 bg-background">
       <div className="container mx-auto px-4 py-6 max-w-6xl">
-        {/* Back button */}
         <button
           onClick={() => navigate(`/anime/${id}`)}
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors"
@@ -141,6 +143,7 @@ const WatchPage = () => {
             intro={stream?.intro}
             outro={stream?.outro}
             onError={handlePlayerError}
+            onReady={handlePlayerReady}
           />
         ) : stream?.embedUrl ? (
           <div className="w-full aspect-video rounded-lg overflow-hidden">
@@ -157,7 +160,7 @@ const WatchPage = () => {
           </div>
         )}
 
-        {/* Episode title + Controls row */}
+        {/* Episode title + Controls */}
         <div className="mt-4 space-y-4">
           {currentEp && (
             <h2 className="font-display font-bold text-lg">
@@ -166,7 +169,7 @@ const WatchPage = () => {
             </h2>
           )}
 
-          {/* Audio & Server controls */}
+          {/* Controls bar */}
           {megacloudServers && (hasSub || hasDub) && (
             <div className="flex flex-wrap items-center gap-3 p-3 rounded-2xl glass">
               {/* Audio type */}
@@ -177,7 +180,7 @@ const WatchPage = () => {
                   {hasSub && (
                     <button
                       onClick={() => setAudioType("sub")}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition-colors ${
+                      className={`px-3 py-1.5 text-sm font-medium transition-colors ${
                         audioType === "sub"
                           ? "bg-primary text-primary-foreground"
                           : "bg-card text-muted-foreground hover:text-foreground"
@@ -189,7 +192,7 @@ const WatchPage = () => {
                   {hasDub && (
                     <button
                       onClick={() => setAudioType("dub")}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition-colors ${
+                      className={`px-3 py-1.5 text-sm font-medium transition-colors ${
                         audioType === "dub"
                           ? "bg-primary text-primary-foreground"
                           : "bg-card text-muted-foreground hover:text-foreground"
@@ -201,7 +204,6 @@ const WatchPage = () => {
                 </div>
               </div>
 
-              {/* Divider */}
               <div className="w-px h-6 bg-border hidden sm:block" />
 
               {/* Server badge */}
@@ -211,6 +213,70 @@ const WatchPage = () => {
                   <Monitor className="w-3.5 h-3.5" /> MegaCloud
                 </span>
               </div>
+
+              {/* Quality selector */}
+              {qualities.length > 1 && (
+                <>
+                  <div className="w-px h-6 bg-border hidden sm:block" />
+                  <div className="flex items-center gap-2">
+                    <Settings className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Quality</span>
+                    <div className="flex rounded-md overflow-hidden border border-border">
+                      <button
+                        onClick={() => { playerHandle?.setQuality(-1); forceUpdate(n => n + 1); }}
+                        className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                          selectedQuality === -1
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-card text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        Auto
+                      </button>
+                      {qualities
+                        .sort((a, b) => b.height - a.height)
+                        .map((q) => (
+                          <button
+                            key={q.index}
+                            onClick={() => { playerHandle?.setQuality(q.index); forceUpdate(n => n + 1); }}
+                            className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                              selectedQuality === q.index
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-card text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            {q.height}p
+                          </button>
+                        ))}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Subtitle selector */}
+              {subtitleTracks.length > 0 && (
+                <>
+                  <div className="w-px h-6 bg-border hidden sm:block" />
+                  <div className="flex items-center gap-2">
+                    <Languages className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Subtitle</span>
+                    <div className="flex rounded-md overflow-hidden border border-border flex-wrap">
+                      {subtitleTracks.map((track, i) => (
+                        <button
+                          key={i}
+                          onClick={() => { playerHandle?.setTrack(i); forceUpdate(n => n + 1); }}
+                          className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                            i === selectedTrack
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-card text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          {track.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
