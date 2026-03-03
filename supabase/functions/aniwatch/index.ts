@@ -435,7 +435,7 @@ Deno.serve(async (req) => {
 
           // MD5 key derivation
           async function md5(data: Uint8Array): Promise<Uint8Array> {
-            const hash = await crypto.subtle.digest("MD5", data);
+            const hash = await crypto.subtle.digest("MD5", data.buffer as ArrayBuffer);
             return new Uint8Array(hash);
           }
 
@@ -458,7 +458,7 @@ Deno.serve(async (req) => {
             "raw", key, { name: "AES-CBC" }, false, ["decrypt"]
           );
           const decrypted = await crypto.subtle.decrypt(
-            { name: "AES-CBC", iv }, cryptoKey, contents
+            { name: "AES-CBC", iv: iv.buffer as ArrayBuffer }, cryptoKey, contents.buffer as ArrayBuffer
           );
 
           const decoded = new TextDecoder().decode(decrypted);
@@ -600,20 +600,10 @@ Deno.serve(async (req) => {
   const translatedCues: string[] = [];
   const BATCH_SIZE = 20;
 
-  for (let b = 0; b < cues.length; b += BATCH_SIZE) {
-    const batch = cues.slice(b, b + BATCH_SIZE);
-    const translations = await translateTexts(batch.map(c => c.text));
-
-    for (let b = 0; b < cues.length; b++) {
-  const cue = cues[b];
-
-  // translate setiap baris
-  const translations = await translateTexts(cue.text);
-
-  translatedCues.push(
-    cue.timestamp + "\n" + translations.join("\n")
-  );
-}
+  for (let i = 0; i < cues.length; i++) {
+    const cue = cues[i];
+    const translated = await translateTexts(cue.text);
+    translatedCues.push(cue.timestamp + "\n" + translated.join("\n"));
   }
 
   const vtt = "WEBVTT\n\n" + translatedCues.join("\n\n");
