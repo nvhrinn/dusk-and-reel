@@ -558,7 +558,7 @@ Deno.serve(async (req) => {
 
 
       const aiRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyBOytYzad-QgDRSgVJAssDSDF51I6G2AE0`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyBRjO26g8mFo6CqVAZn3PfqGTJ_jYTTStQ`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
