@@ -1,11 +1,13 @@
 import { useAuth } from "@/hooks/useAuth";
-import { lovable } from "@/integrations/lovable/index";
+import { useGoogleLogin } from "@react-oauth/google";
+import { supabase } from "@/integrations/supabase/client";
 import { LogIn, LogOut, User, Ticket } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
+import { toast } from "sonner";
 
 const UserMenu = () => {
-  const { user, profile, loading, signOut } = useAuth();
+  const { user, profile, loading, signOut, refreshProfile } = useAuth();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -17,18 +19,31 @@ const UserMenu = () => {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const handleLogin = async () => {
-    await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-  };
+  const googleLogin = useGoogleLogin({
+    flow: "implicit",
+    onSuccess: async (tokenResponse) => {
+      try {
+        const { error } = await supabase.auth.signInWithIdToken({
+          provider: "google",
+          token: tokenResponse.access_token,
+        });
+        if (error) throw error;
+        await refreshProfile();
+        toast.success("Login berhasil!");
+      } catch (err: any) {
+        console.error("Login error:", err);
+        toast.error("Login gagal: " + (err.message || "Unknown error"));
+      }
+    },
+    onError: () => toast.error("Login Google dibatalkan"),
+  });
 
   if (loading) return null;
 
   if (!user) {
     return (
       <button
-        onClick={handleLogin}
+        onClick={() => googleLogin()}
         className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
         <LogIn className="w-4 h-4" />

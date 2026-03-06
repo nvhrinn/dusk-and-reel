@@ -6,9 +6,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Monitor, Volume2, Languages, Settings, ChevronDown, LogIn, Ticket } from "lucide-react";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { lovable } from "@/integrations/lovable/index";
+import { useGoogleLogin } from "@react-oauth/google";
 import AdRewardDialog from "@/components/AdRewardDialog";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const Dropdown = ({
   label,
@@ -71,7 +72,7 @@ const WatchPage = () => {
   const [params] = useSearchParams();
   const epId = params.get("ep");
   const navigate = useNavigate();
-  const { user, profile, useCoupon } = useAuth();
+  const { user, profile, useCoupon, refreshProfile } = useAuth();
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [audioType, setAudioType] = useState<"sub" | "dub">("sub");
   const [cachedSubTracks, setCachedSubTracks] = useState<{ file: string; label: string; kind: string }[]>([]);
@@ -97,9 +98,23 @@ const WatchPage = () => {
     else setShowAdDialog(true);
   };
 
-  const handleLogin = async () => {
-    await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
-  };
+  const googleLogin = useGoogleLogin({
+    flow: "implicit",
+    onSuccess: async (tokenResponse) => {
+      try {
+        const { error } = await supabase.auth.signInWithIdToken({
+          provider: "google",
+          token: tokenResponse.access_token,
+        });
+        if (error) throw error;
+        await refreshProfile();
+        toast.success("Login berhasil!");
+      } catch (err: any) {
+        toast.error("Login gagal");
+      }
+    },
+    onError: () => toast.error("Login Google dibatalkan"),
+  });
 
   const { data: episodes } = useQuery({
     queryKey: ["episodes", id],
@@ -253,7 +268,7 @@ const WatchPage = () => {
           <div className="w-full aspect-video rounded-lg bg-secondary flex flex-col items-center justify-center gap-4">
             <LogIn className="w-10 h-10 text-muted-foreground" />
             <p className="text-muted-foreground text-sm">Login untuk menonton</p>
-            <button onClick={handleLogin} className="px-4 py-2 rounded-xl text-sm bg-primary text-primary-foreground font-medium">
+            <button onClick={() => googleLogin()} className="px-4 py-2 rounded-xl text-sm bg-primary text-primary-foreground font-medium">
               Login dengan Google
             </button>
           </div>
