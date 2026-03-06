@@ -8,7 +8,14 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useGoogleLogin } from "@react-oauth/google";
 import { toast } from "sonner";
 import AdRewardDialog from "@/components/AdRewardDialog";
-import { loginUser, getUser } from "@/lib/auth";
+import {
+  getUser,
+  getCoupons,
+  setCoupons,
+  unlockEpisode,
+  getUnlockedEpisodes
+} from "@/lib/auth";
+
 
 const Dropdown = ({
   label,
