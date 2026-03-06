@@ -3,8 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { aniwatchApi } from "@/lib/api";
 import VideoPlayer from "@/components/VideoPlayer";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Monitor, Volume2, Languages, Settings, ChevronDown } from "lucide-react";
+import { ArrowLeft, Monitor, Volume2, Languages, Settings, ChevronDown, LogIn, Ticket } from "lucide-react";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { lovable } from "@/integrations/lovable/index";
+import AdRewardDialog from "@/components/AdRewardDialog";
+import { supabase } from "@/integrations/supabase/client";
 
 const Dropdown = ({
   label,
@@ -67,14 +71,35 @@ const WatchPage = () => {
   const [params] = useSearchParams();
   const epId = params.get("ep");
   const navigate = useNavigate();
+  const { user, profile, useCoupon } = useAuth();
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [audioType, setAudioType] = useState<"sub" | "dub">("sub");
   const [cachedSubTracks, setCachedSubTracks] = useState<{ file: string; label: string; kind: string }[]>([]);
+  const [episodeUnlocked, setEpisodeUnlocked] = useState(false);
+  const [showAdDialog, setShowAdDialog] = useState(false);
 
   // Player state lifted up
   const [qualities, setQualities] = useState<{ height: number; index: number }[]>([]);
   const [selectedQuality, setSelectedQuality] = useState<number>(-1);
   const [selectedTrack, setSelectedTrack] = useState<number>(0);
+
+  // Check if episode already unlocked
+  useEffect(() => {
+    if (!user || !epId) { setEpisodeUnlocked(false); return; }
+    supabase.from("coupon_usage").select("id").eq("user_id", user.id).eq("episode_id", epId).maybeSingle()
+      .then(({ data }) => setEpisodeUnlocked(!!data));
+  }, [user, epId]);
+
+  const handleUnlock = async () => {
+    if (!epId) return;
+    const ok = await useCoupon(epId);
+    if (ok) setEpisodeUnlocked(true);
+    else setShowAdDialog(true);
+  };
+
+  const handleLogin = async () => {
+    await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
+  };
 
   const { data: episodes } = useQuery({
     queryKey: ["episodes", id],
@@ -223,8 +248,25 @@ const WatchPage = () => {
           <ArrowLeft className="w-4 h-4" /> Back to details
         </button>
 
-        {/* Player */}
-        {streamLoading || serversLoading ? (
+        {/* Coupon Gate */}
+        {!user ? (
+          <div className="w-full aspect-video rounded-lg bg-secondary flex flex-col items-center justify-center gap-4">
+            <LogIn className="w-10 h-10 text-muted-foreground" />
+            <p className="text-muted-foreground text-sm">Login untuk menonton</p>
+            <button onClick={handleLogin} className="px-4 py-2 rounded-xl text-sm bg-primary text-primary-foreground font-medium">
+              Login dengan Google
+            </button>
+          </div>
+        ) : !episodeUnlocked ? (
+          <div className="w-full aspect-video rounded-lg bg-secondary flex flex-col items-center justify-center gap-4">
+            <Ticket className="w-10 h-10 text-muted-foreground" />
+            <p className="text-foreground font-medium">Gunakan 1 kupon untuk menonton</p>
+            <p className="text-sm text-muted-foreground">Kamu punya {profile?.coupons ?? 0} kupon</p>
+            <button onClick={handleUnlock} className="px-4 py-2 rounded-xl text-sm bg-primary text-primary-foreground font-medium">
+              {(profile?.coupons ?? 0) > 0 ? "Unlock Episode" : "Tonton Iklan untuk Kupon"}
+            </button>
+          </div>
+        ) : streamLoading || serversLoading ? (
           <Skeleton className="w-full aspect-video rounded-lg" />
         ) : streamUrl ? (
           <VideoPlayer
@@ -246,6 +288,8 @@ const WatchPage = () => {
             <p className="text-muted-foreground">Select a server to start watching</p>
           </div>
         )}
+
+        <AdRewardDialog open={showAdDialog} onClose={() => setShowAdDialog(false)} />
 
         {/* Controls below player */}
         <div className="mt-4 space-y-4">

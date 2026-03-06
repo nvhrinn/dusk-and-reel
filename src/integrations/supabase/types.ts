@@ -14,7 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      coupon_usage: {
+        Row: {
+          episode_id: string
+          id: string
+          used_at: string
+          user_id: string
+        }
+        Insert: {
+          episode_id: string
+          id?: string
+          used_at?: string
+          user_id: string
+        }
+        Update: {
+          episode_id?: string
+          id?: string
+          used_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          coupons: number
+          created_at: string
+          id: string
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          coupons?: number
+          created_at?: string
+          id: string
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          coupons?: number
+          created_at?: string
+          id?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
