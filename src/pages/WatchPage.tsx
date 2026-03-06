@@ -71,9 +71,7 @@ const WatchPage = () => {
   const epId = params.get("ep");
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
-const [coupons, setCoupons] = useState(
-  Number(localStorage.getItem("coupons") || 0)
-);
+const [coupons, setCoupons] = useState(0);
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [audioType, setAudioType] = useState<"sub" | "dub">("sub");
   const [cachedSubTracks, setCachedSubTracks] = useState<{ file: string; label: string; kind: string }[]>([]);
@@ -87,23 +85,49 @@ const [coupons, setCoupons] = useState(
 
   // Check if episode already unlocked
 useEffect(() => {
-  const stored = localStorage.getItem("google_user");
+  const stored = localStorage.getItem("coupons");
 
-  if (stored) {
-    const data = JSON.parse(stored);
-    setUser(data);
-    setCoupons(data.coupons ?? 0);
+  if (!stored) {
+    localStorage.setItem("coupons", "2");
+    setCoupons(2);
+  } else {
+    setCoupons(Number(stored));
   }
 }, []);
 
-  
+  useEffect(() => {
+  if (!epId) return;
+
+  const unlockedEpisodes =
+    JSON.parse(localStorage.getItem("unlockedEpisodes") || "[]");
+
+  if (unlockedEpisodes.includes(epId)) {
+    setEpisodeUnlocked(true);
+  } else {
+    setEpisodeUnlocked(false);
+  }
+}, [epId]);
 
   const handleUnlock = () => {
+  if (!epId) return;
+
   if (coupons > 0) {
     const newCoupons = coupons - 1;
 
     localStorage.setItem("coupons", String(newCoupons));
     setCoupons(newCoupons);
+
+    const unlockedEpisodes =
+      JSON.parse(localStorage.getItem("unlockedEpisodes") || "[]");
+
+    if (!unlockedEpisodes.includes(epId)) {
+      unlockedEpisodes.push(epId);
+      localStorage.setItem(
+        "unlockedEpisodes",
+        JSON.stringify(unlockedEpisodes)
+      );
+    }
+
     setEpisodeUnlocked(true);
   } else {
     setShowAdDialog(true);
