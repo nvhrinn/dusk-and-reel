@@ -2,12 +2,6 @@ import { useState } from "react";
 import { Ticket, Play } from "lucide-react";
 import { toast } from "sonner";
 
-declare global {
-  interface Window {
-    adsbygoogle: any[];
-  }
-}
-
 const AdRewardDialog = ({
   open,
   onClose,
@@ -34,26 +28,12 @@ const AdRewardDialog = ({
 
     setWatching(true);
 
-    try {
-      if (typeof window !== "undefined") {
-        (window.adsbygoogle = window.adsbygoogle || []).push({
-          google_ad_client: "ca-pub-4196916672015192",
-          enable_page_level_ads: true,
-        });
-      }
-
-      // simulasi reward callback
-      setTimeout(() => {
-        addCoupon();
-        setWatching(false);
-        onClose();
-      }, 8000);
-
-    } catch (err) {
-      console.error("Adsense error:", err);
-      toast.error("Iklan gagal dimuat");
+    // simulasi waktu nonton iklan
+    setTimeout(() => {
+      addCoupon();
       setWatching(false);
-    }
+      onClose();
+    }, 8000);
   };
 
   const handleClose = () => {
@@ -99,7 +79,7 @@ const AdRewardDialog = ({
         {watching && (
           <div className="text-center space-y-4">
             <div className="aspect-video bg-secondary rounded-lg flex items-center justify-center">
-              Memuat iklan...
+              Menonton iklan...
             </div>
 
             <p className="text-xs text-muted-foreground">
