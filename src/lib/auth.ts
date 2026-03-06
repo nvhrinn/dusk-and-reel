@@ -38,7 +38,7 @@ export function unlockEpisode(epId: string) {
   }
 }
 
-export function isEpisodeUnlocked(epId: string) {
+export function getEpisodeUnlocked(epId: string) {
   const unlocked = JSON.parse(localStorage.getItem("unlocked") || "[]");
   return unlocked.includes(epId);
 }
