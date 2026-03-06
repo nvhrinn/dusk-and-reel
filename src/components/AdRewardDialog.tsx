@@ -30,28 +30,27 @@ const AdRewardDialog = ({
     toast.success("+1 Kupon didapat!");
   };
 
-  const startAd = () => {
-    if (watching) return;
+const startAd = () => {
+  if (watching) return;
 
-    setWatching(true);
-    setCountdown(5);
+  setWatching(true);
+  setCountdown(5);
 
-    const interval = setInterval(() => {
-      setCountdown((c) => {
-        if (c <= 1) {
-          clearInterval(interval);
+  const interval = setInterval(() => {
+    setCountdown((c) => {
+      if (c <= 1) {
+        clearInterval(interval);
 
-          addCoupon();
-          setDone(true);
-          setWatching(false);
+        addCoupon();
+        setDone(true); // cukup ini
 
-          return 0;
-        }
+        return 0;
+      }
 
-        return c - 1;
-      });
-    }, 1000);
-  };
+      return c - 1;
+    });
+  }, 1000);
+};
 
   const handleClose = () => {
     rewarded.current = false;
@@ -98,7 +97,7 @@ const AdRewardDialog = ({
           </div>
         )}
 
-        {watching && (
+        {watching && !done && (
           <div className="text-center space-y-4">
             <div className="aspect-video bg-secondary rounded-lg flex items-center justify-center text-sm text-muted-foreground">
               Iklan berjalan... {countdown}s
