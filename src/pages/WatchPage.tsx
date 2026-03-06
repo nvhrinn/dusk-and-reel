@@ -5,10 +5,7 @@ import VideoPlayer from "@/components/VideoPlayer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Monitor, Volume2, Languages, Settings, ChevronDown, LogIn, Ticket } from "lucide-react";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { useAuth } from "@/hooks/useAuth";
 import { useGoogleLogin } from "@react-oauth/google";
-import AdRewardDialog from "@/components/AdRewardDialog";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const Dropdown = ({
@@ -72,7 +69,8 @@ const WatchPage = () => {
   const [params] = useSearchParams();
   const epId = params.get("ep");
   const navigate = useNavigate();
-  const { user, profile, useCoupon, refreshProfile } = useAuth();
+  const [user, setUser] = useState<any>(null);
+const [coupons, setCoupons] = useState(0);
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [audioType, setAudioType] = useState<"sub" | "dub">("sub");
   const [cachedSubTracks, setCachedSubTracks] = useState<{ file: string; label: string; kind: string }[]>([]);
@@ -85,36 +83,96 @@ const WatchPage = () => {
   const [selectedTrack, setSelectedTrack] = useState<number>(0);
 
   // Check if episode already unlocked
-  useEffect(() => {
-    if (!user || !epId) { setEpisodeUnlocked(false); return; }
-    supabase.from("coupon_usage").select("id").eq("user_id", user.id).eq("episode_id", epId).maybeSingle()
-      .then(({ data }) => setEpisodeUnlocked(!!data));
-  }, [user, epId]);
+useEffect(() => {
+  const stored = localStorage.getItem("google_user");
 
-  const handleUnlock = async () => {
-    if (!epId) return;
-    const ok = await useCoupon(epId);
-    if (ok) setEpisodeUnlocked(true);
-    else setShowAdDialog(true);
+  if (stored) {
+    const data = JSON.parse(stored);
+    setUser(data);
+    setCoupons(data.coupons ?? 0);
+  }
+}, []);
+
+  const handleUnlock = () => {
+
+  if (!user) {
+    toast.error("Login dulu");
+    return;
+  }
+
+  if (coupons <= 0) {
+    setShowAdDialog(true);
+    return;
+  }
+
+  const updatedUser = {
+    ...user,
+    coupons: coupons - 1
   };
 
+  localStorage.setItem("google_user", JSON.stringify(updatedUser));
+
+  setUser(updatedUser);
+  setCoupons(updatedUser.coupons);
+  setEpisodeUnlocked(true);
+
+  toast.success("Episode berhasil dibuka!");
+};
+
+const rewardCoupon = () => {
+
+  if (!user) return;
+
+  const updatedUser = {
+    ...user,
+    coupons: coupons + 1
+  };
+
+  localStorage.setItem("google_user", JSON.stringify(updatedUser));
+
+  setUser(updatedUser);
+  setCoupons(updatedUser.coupons);
+
+  toast.success("Kupon +1 berhasil didapat!");
+};
+  
   const googleLogin = useGoogleLogin({
-    flow: "implicit",
-    onSuccess: async (tokenResponse) => {
-      try {
-        const { error } = await supabase.auth.signInWithIdToken({
-          provider: "google",
-          token: tokenResponse.access_token,
-        });
-        if (error) throw error;
-        await refreshProfile();
-        toast.success("Login berhasil!");
-      } catch (err: any) {
-        toast.error("Login gagal");
-      }
-    },
-    onError: () => toast.error("Login Google dibatalkan"),
-  });
+  onSuccess: async (tokenResponse) => {
+
+    try {
+
+      const res = await fetch(
+        "https://www.googleapis.com/oauth2/v3/userinfo",
+        {
+          headers: {
+            Authorization: `Bearer ${tokenResponse.access_token}`
+          }
+        }
+      );
+
+      const profile = await res.json();
+
+      const userData = {
+        id: profile.sub,
+        name: profile.name,
+        email: profile.email,
+        avatar: profile.picture,
+        coupons: 2
+      };
+
+      localStorage.setItem("google_user", JSON.stringify(userData));
+
+      setUser(userData);
+      setCoupons(2);
+
+      toast.success("Login berhasil!");
+
+    } catch {
+      toast.error("Login gagal");
+    }
+
+  }
+});
 
   const { data: episodes } = useQuery({
     queryKey: ["episodes", id],
@@ -276,9 +334,9 @@ const WatchPage = () => {
           <div className="w-full aspect-video rounded-lg bg-secondary flex flex-col items-center justify-center gap-4">
             <Ticket className="w-10 h-10 text-muted-foreground" />
             <p className="text-foreground font-medium">Gunakan 1 kupon untuk menonton</p>
-            <p className="text-sm text-muted-foreground">Kamu punya {profile?.coupons ?? 0} kupon</p>
+            <p className="text-sm text-muted-foreground">Kamu punya {coupons} kupon</p>
             <button onClick={handleUnlock} className="px-4 py-2 rounded-xl text-sm bg-primary text-primary-foreground font-medium">
-              {(profile?.coupons ?? 0) > 0 ? "Unlock Episode" : "Tonton Iklan untuk Kupon"}
+              {coupons > 0 ? "Unlock Episode" : "Tonton Iklan untuk Kupon"}
             </button>
           </div>
         ) : streamLoading || serversLoading ? (
@@ -304,7 +362,7 @@ const WatchPage = () => {
           </div>
         )}
 
-        <AdRewardDialog open={showAdDialog} onClose={() => setShowAdDialog(false)} />
+        <AdRewardDialog open={showAdDialog} onClose={() => setShowAdDialog(false)} onReward={rewardCoupon} />
 
         {/* Controls below player */}
         <div className="mt-4 space-y-4">
