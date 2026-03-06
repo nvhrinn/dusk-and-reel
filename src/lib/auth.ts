@@ -39,7 +39,7 @@ export const unlockEpisode = (epId: string) => {
   }
 }
 
-export function getUnlockedEpisodes(epId: string) {
-  const unlocked = JSON.parse(localStorage.getItem("unlocked") || "[]");
-  return unlocked.includes(epId);
-}
+export const getUnlockedEpisodes = (): string[] => {
+  const data = localStorage.getItem("unlocked_eps");
+  return data ? JSON.parse(data) : [];
+};
