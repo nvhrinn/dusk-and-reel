@@ -60,6 +60,14 @@ const startAd = () => {
     onClose();
   };
 
+  useEffect(() => {
+  if (open) {
+    setWatching(false);
+    setDone(false);
+    setCountdown(5);
+  }
+}, [open]);
+
   if (!open) return null;
 
   return (
