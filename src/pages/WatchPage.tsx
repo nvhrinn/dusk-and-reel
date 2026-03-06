@@ -7,6 +7,7 @@ import { ArrowLeft, Monitor, Volume2, Languages, Settings, ChevronDown, LogIn, T
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useGoogleLogin } from "@react-oauth/google";
 import { toast } from "sonner";
+import AdRewardDialog from "@/components/AdRewardDialog";
 
 const Dropdown = ({
   label,
