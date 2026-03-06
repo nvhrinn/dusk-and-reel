@@ -25,7 +25,7 @@ const UserMenu = () => {
         const idToken = credentialResponse.credential;
         const { error } = await supabase.auth.signInWithIdToken({
           provider: "google",
-          token: idToken,
+          token: idToken
         });
         if (error) throw error;
         await refreshProfile();
