@@ -79,7 +79,7 @@ const WatchPage = () => {
   const epId = params.get("ep");
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(getUser());
-const [coupons, setCoupons] = useState(0);
+const [coupons, setCouponsState] = useState(0);
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [audioType, setAudioType] = useState<"sub" | "dub">("sub");
   const [cachedSubTracks, setCachedSubTracks] = useState<{ file: string; label: string; kind: string }[]>([]);
