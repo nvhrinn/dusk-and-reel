@@ -1,6 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Ticket, Play } from "lucide-react";
 import { toast } from "sonner";
+
+declare global {
+  interface Window {
+    adsbygoogle: any[];
+  }
+}
 
 const AdRewardDialog = ({
   open,
@@ -12,6 +18,17 @@ const AdRewardDialog = ({
   onReward: () => void;
 }) => {
   const [watching, setWatching] = useState(false);
+  const [countdown, setCountdown] = useState(8);
+
+  useEffect(() => {
+    if (open && watching) {
+      try {
+        (window.adsbygoogle = window.adsbygoogle || []).push({});
+      } catch (e) {
+        console.log("Adsense error", e);
+      }
+    }
+  }, [watching, open]);
 
   const addCoupon = () => {
     const coupons = Number(localStorage.getItem("coupons") || 0);
@@ -27,13 +44,20 @@ const AdRewardDialog = ({
     if (watching) return;
 
     setWatching(true);
+    setCountdown(8);
 
-    // simulasi waktu nonton iklan
-    setTimeout(() => {
-      addCoupon();
-      setWatching(false);
-      onClose();
-    }, 8000);
+    const interval = setInterval(() => {
+      setCountdown((c) => {
+        if (c <= 1) {
+          clearInterval(interval);
+          addCoupon();
+          setWatching(false);
+          onClose();
+          return 0;
+        }
+        return c - 1;
+      });
+    }, 1000);
   };
 
   const handleClose = () => {
@@ -54,7 +78,7 @@ const AdRewardDialog = ({
             <h3 className="font-bold text-lg">Kupon Habis!</h3>
 
             <p className="text-sm text-muted-foreground">
-              Tonton iklan untuk mendapatkan 1 kupon.
+              Tonton iklan untuk mendapatkan 1 kupon
             </p>
 
             <div className="flex gap-2 justify-center">
@@ -78,13 +102,21 @@ const AdRewardDialog = ({
 
         {watching && (
           <div className="text-center space-y-4">
-            <div className="aspect-video bg-secondary rounded-lg flex items-center justify-center">
-              Menonton iklan...
-            </div>
+
+            {/* ADSENSE */}
+            <ins
+              className="adsbygoogle"
+              style={{ display: "block" }}
+              data-ad-client="ca-pub-4196916672015192"
+              data-ad-slot="1234567890"
+              data-ad-format="auto"
+              data-full-width-responsive="true"
+            />
 
             <p className="text-xs text-muted-foreground">
-              Tunggu sampai iklan selesai
+              Tunggu {countdown} detik...
             </p>
+
           </div>
         )}
 
