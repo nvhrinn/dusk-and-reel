@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { Ticket, Play } from "lucide-react";
 import { toast } from "sonner";
 
@@ -13,14 +13,8 @@ const AdRewardDialog = ({
 }) => {
   const [watching, setWatching] = useState(false);
   const [countdown, setCountdown] = useState(5);
-  const [done, setDone] = useState(false);
-
-  const rewarded = useRef(false);
 
   const addCoupon = () => {
-    if (rewarded.current) return; // anti double reward
-    rewarded.current = true;
-
     const coupons = Number(localStorage.getItem("coupons") || 0);
     const newCoupons = coupons + 1;
 
@@ -30,43 +24,36 @@ const AdRewardDialog = ({
     toast.success("+1 Kupon didapat!");
   };
 
-const startAd = () => {
-  if (watching) return;
+  const startAd = () => {
+    if (watching) return;
 
-  setWatching(true);
-  setCountdown(5);
+    setWatching(true);
+    setCountdown(5);
 
-  const interval = setInterval(() => {
-    setCountdown((c) => {
-      if (c <= 1) {
-        clearInterval(interval);
+    const interval = setInterval(() => {
+      setCountdown((c) => {
+        if (c <= 1) {
+          clearInterval(interval);
 
-        addCoupon();
-        setDone(true); // cukup ini
+          addCoupon();
 
-        return 0;
-      }
+          // langsung close dialog
+          setWatching(false);
+          onClose();
 
-      return c - 1;
-    });
-  }, 1000);
-};
+          return 0;
+        }
+
+        return c - 1;
+      });
+    }, 1000);
+  };
 
   const handleClose = () => {
-    rewarded.current = false;
     setWatching(false);
-    setDone(false);
     setCountdown(5);
     onClose();
   };
-
-  useEffect(() => {
-  if (open) {
-    setWatching(false);
-    setDone(false);
-    setCountdown(5);
-  }
-}, [open]);
 
   if (!open) return null;
 
@@ -74,16 +61,14 @@ const startAd = () => {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div className="bg-card border border-border rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl">
 
-        {!watching && !done && (
+        {!watching && (
           <div className="text-center space-y-4">
             <Ticket className="w-10 h-10 text-primary mx-auto" />
 
-            <h3 className="font-bold text-lg">
-              Kupon Habis
-            </h3>
+            <h3 className="font-bold text-lg">Kupon Habis!</h3>
 
             <p className="text-sm text-muted-foreground">
-              Tonton iklan untuk mendapatkan 1 kupon gratis
+              Tonton iklan untuk mendapatkan 1 kupon.
             </p>
 
             <div className="flex gap-2 justify-center">
@@ -105,36 +90,15 @@ const startAd = () => {
           </div>
         )}
 
-        {watching && !done && (
+        {watching && (
           <div className="text-center space-y-4">
-            <div className="aspect-video bg-secondary rounded-lg flex items-center justify-center text-sm text-muted-foreground">
-              Iklan berjalan... {countdown}s
+            <div className="aspect-video bg-secondary rounded-lg flex items-center justify-center">
+              Ad placeholder — {countdown}s
             </div>
 
             <p className="text-xs text-muted-foreground">
-              Tunggu sampai iklan selesai
+              Tunggu {countdown} detik...
             </p>
-          </div>
-        )}
-
-        {done && (
-          <div className="text-center space-y-4">
-            <Ticket className="w-10 h-10 text-primary mx-auto" />
-
-            <h3 className="font-bold text-lg">
-              Kupon Berhasil Didapat
-            </h3>
-
-            <p className="text-sm text-muted-foreground">
-              Sekarang kamu bisa membuka episode
-            </p>
-
-            <button
-              onClick={handleClose}
-              className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm"
-            >
-              Lanjut Nonton
-            </button>
           </div>
         )}
 
