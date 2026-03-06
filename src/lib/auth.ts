@@ -1,14 +1,21 @@
-export function getUser() {
-  const user = localStorage.getItem("user");
-  return user ? JSON.parse(user) : null;
+export interface User {
+  name: string;
+  email: string;
+  picture: string;
 }
 
-export function loginUser(profile: any) {
-  localStorage.setItem("user", JSON.stringify(profile));
+export function loginUser(user: User) {
+  localStorage.setItem("user", JSON.stringify(user));
 
+  // jika pertama login beri kupon 2
   if (!localStorage.getItem("coupons")) {
     localStorage.setItem("coupons", "2");
   }
+}
+
+export function getUser(): User | null {
+  const data = localStorage.getItem("user");
+  return data ? JSON.parse(data) : null;
 }
 
 export function logoutUser() {
@@ -19,18 +26,19 @@ export function getCoupons() {
   return Number(localStorage.getItem("coupons") || 0);
 }
 
-export function setCoupons(value: number) {
-  localStorage.setItem("coupons", String(value));
-}
-
-export function getUnlockedEpisodes() {
-  return JSON.parse(localStorage.getItem("unlockedEpisodes") || "[]");
+export function setCoupons(v: number) {
+  localStorage.setItem("coupons", String(v));
 }
 
 export function unlockEpisode(epId: string) {
-  const list = getUnlockedEpisodes();
-  if (!list.includes(epId)) {
-    list.push(epId);
-    localStorage.setItem("unlockedEpisodes", JSON.stringify(list));
+  const unlocked = JSON.parse(localStorage.getItem("unlocked") || "[]");
+  if (!unlocked.includes(epId)) {
+    unlocked.push(epId);
+    localStorage.setItem("unlocked", JSON.stringify(unlocked));
   }
+}
+
+export function isEpisodeUnlocked(epId: string) {
+  const unlocked = JSON.parse(localStorage.getItem("unlocked") || "[]");
+  return unlocked.includes(epId);
 }
