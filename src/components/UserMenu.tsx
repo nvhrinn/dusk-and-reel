@@ -21,11 +21,11 @@ const UserMenu = () => {
 
   const googleLogin = useGoogleLogin({
     flow: "implicit",
-    onSuccess: async (tokenResponse) => {
+    onSuccess: async (credentialResponse) => {
       try {
         const { error } = await supabase.auth.signInWithIdToken({
           provider: "google",
-          token: tokenResponse.access_token,
+          token: credentialResponse.credential,
         });
         if (error) throw error;
         await refreshProfile();
