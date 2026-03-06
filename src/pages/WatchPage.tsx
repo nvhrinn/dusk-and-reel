@@ -8,6 +8,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useGoogleLogin } from "@react-oauth/google";
 import { toast } from "sonner";
 import AdRewardDialog from "@/components/AdRewardDialog";
+import { loginUser, getUser } from "@/lib/auth";
 
 const Dropdown = ({
   label,
@@ -83,29 +84,27 @@ const [coupons, setCoupons] = useState(0);
   const [selectedQuality, setSelectedQuality] = useState<number>(-1);
   const [selectedTrack, setSelectedTrack] = useState<number>(0);
 
+useEffect(() => {
+  const u = getUser();
+  setUser(u);
+  setCoupons(getCoupons());
+}, []);
+  
   // Check if episode already unlocked
 useEffect(() => {
-  const stored = localStorage.getItem("coupons");
+  const coupons = Number(localStorage.getItem("coupons") || 0);
 
-  if (!stored) {
+  if (coupons > 10) {
     localStorage.setItem("coupons", "2");
-    setCoupons(2);
-  } else {
-    setCoupons(Number(stored));
   }
 }, []);
 
   useEffect(() => {
   if (!epId) return;
 
-  const unlockedEpisodes =
-    JSON.parse(localStorage.getItem("unlockedEpisodes") || "[]");
+  const unlocked = getUnlockedEpisodes();
 
-  if (unlockedEpisodes.includes(epId)) {
-    setEpisodeUnlocked(true);
-  } else {
-    setEpisodeUnlocked(false);
-  }
+  setEpisodeUnlocked(unlocked.includes(epId));
 }, [epId]);
 
   const handleUnlock = () => {
@@ -114,20 +113,10 @@ useEffect(() => {
   if (coupons > 0) {
     const newCoupons = coupons - 1;
 
-    localStorage.setItem("coupons", String(newCoupons));
+    setCoupons(newCoupons);
     setCoupons(newCoupons);
 
-    const unlockedEpisodes =
-      JSON.parse(localStorage.getItem("unlockedEpisodes") || "[]");
-
-    if (!unlockedEpisodes.includes(epId)) {
-      unlockedEpisodes.push(epId);
-      localStorage.setItem(
-        "unlockedEpisodes",
-        JSON.stringify(unlockedEpisodes)
-      );
-    }
-
+    unlockEpisode(epId);
     setEpisodeUnlocked(true);
   } else {
     setShowAdDialog(true);
@@ -151,43 +140,31 @@ const rewardCoupon = () => {
   toast.success("Kupon +1 berhasil didapat!");
 };
   
-  const googleLogin = useGoogleLogin({
-  onSuccess: async (tokenResponse) => {
-
+  
+const googleLogin = useGoogleLogin({
+  onSuccess: async (token) => {
     try {
-
       const res = await fetch(
         "https://www.googleapis.com/oauth2/v3/userinfo",
         {
           headers: {
-            Authorization: `Bearer ${tokenResponse.access_token}`
-          }
+            Authorization: `Bearer ${token.access_token}`,
+          },
         }
       );
 
       const profile = await res.json();
 
-      const userData = {
-        id: profile.sub,
-        name: profile.name,
-        email: profile.email,
-        avatar: profile.picture,
-        coupons: 2
-      };
+      loginUser(profile);
+      setUser(profile);
 
-      localStorage.setItem("google_user", JSON.stringify(userData));
-
-      setUser(userData);
-      setCoupons(2);
-
-      toast.success("Login berhasil!");
-
+      toast.success("Login berhasil");
     } catch {
       toast.error("Login gagal");
     }
-
-  }
+  },
 });
+
 
   const { data: episodes } = useQuery({
     queryKey: ["episodes", id],
@@ -381,8 +358,15 @@ const rewardCoupon = () => {
   open={showAdDialog}
   onClose={() => setShowAdDialog(false)}
   onReward={() => {
-    const newCoupons = Number(localStorage.getItem("coupons") || 0);
+    const newCoupons = coupons + 1;
+
     setCoupons(newCoupons);
+    setCoupons(newCoupons);
+
+    unlockEpisode(epId!);
+    setEpisodeUnlocked(true);
+
+    setShowAdDialog(false);
   }}
 />
 
