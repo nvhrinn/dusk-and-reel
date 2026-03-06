@@ -22,10 +22,10 @@ const UserMenu = () => {
   const googleLogin = useGoogleLogin({
     onSuccess: async (credentialResponse) => {
       try {
-        const idToken = credentialResponse.credential;
+        
         const { error } = await supabase.auth.signInWithIdToken({
-          provider: "google",
-          token: idToken
+          provider: "google"
+          
         });
         if (error) throw error;
         await refreshProfile();
