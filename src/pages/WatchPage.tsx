@@ -115,7 +115,7 @@ useEffect(() => {
 
   setEpisodeUnlocked(unlocked.includes(epId));
 }, [epId]);
-
+  
   const handleUnlock = () => {
   if (!epId) return;
 
