@@ -2,6 +2,12 @@ import { useState } from "react";
 import { Ticket, Play } from "lucide-react";
 import { toast } from "sonner";
 
+declare global {
+  interface Window {
+    adsbygoogle: any[];
+  }
+}
+
 const AdRewardDialog = ({
   open,
   onClose,
@@ -12,7 +18,6 @@ const AdRewardDialog = ({
   onReward: () => void;
 }) => {
   const [watching, setWatching] = useState(false);
-  const [countdown, setCountdown] = useState(5);
 
   const addCoupon = () => {
     const coupons = Number(localStorage.getItem("coupons") || 0);
@@ -20,7 +25,7 @@ const AdRewardDialog = ({
 
     localStorage.setItem("coupons", String(newCoupons));
 
-    onReward(); // update WatchPage
+    onReward();
     toast.success("+1 Kupon didapat!");
   };
 
@@ -28,30 +33,31 @@ const AdRewardDialog = ({
     if (watching) return;
 
     setWatching(true);
-    setCountdown(5);
 
-    const interval = setInterval(() => {
-      setCountdown((c) => {
-        if (c <= 1) {
-          clearInterval(interval);
+    try {
+      if (typeof window !== "undefined") {
+        (window.adsbygoogle = window.adsbygoogle || []).push({
+          google_ad_client: "ca-pub-XXXXXXXX",
+          enable_page_level_ads: true,
+        });
+      }
 
-          addCoupon();
+      // simulasi reward callback
+      setTimeout(() => {
+        addCoupon();
+        setWatching(false);
+        onClose();
+      }, 8000);
 
-          // langsung close dialog
-          setWatching(false);
-          onClose();
-
-          return 0;
-        }
-
-        return c - 1;
-      });
-    }, 1000);
+    } catch (err) {
+      console.error("Adsense error:", err);
+      toast.error("Iklan gagal dimuat");
+      setWatching(false);
+    }
   };
 
   const handleClose = () => {
     setWatching(false);
-    setCountdown(5);
     onClose();
   };
 
@@ -93,11 +99,11 @@ const AdRewardDialog = ({
         {watching && (
           <div className="text-center space-y-4">
             <div className="aspect-video bg-secondary rounded-lg flex items-center justify-center">
-              Ad placeholder — {countdown}s
+              Memuat iklan...
             </div>
 
             <p className="text-xs text-muted-foreground">
-              Tunggu {countdown} detik...
+              Tunggu sampai iklan selesai
             </p>
           </div>
         )}
