@@ -94,30 +94,20 @@ useEffect(() => {
   }
 }, []);
 
+  const [coupons, setCoupons] = useState(
+  Number(localStorage.getItem("coupons") || 0)
+);
+
   const handleUnlock = () => {
+  if (coupons > 0) {
+    const newCoupons = coupons - 1;
 
-  if (!user) {
-    toast.error("Login dulu");
-    return;
-  }
-
-  if (coupons <= 0) {
+    localStorage.setItem("coupons", String(newCoupons));
+    setCoupons(newCoupons);
+    setEpisodeUnlocked(true);
+  } else {
     setShowAdDialog(true);
-    return;
   }
-
-  const updatedUser = {
-    ...user,
-    coupons: coupons - 1
-  };
-
-  localStorage.setItem("google_user", JSON.stringify(updatedUser));
-
-  setUser(updatedUser);
-  setCoupons(updatedUser.coupons);
-  setEpisodeUnlocked(true);
-
-  toast.success("Episode berhasil dibuka!");
 };
 
 const rewardCoupon = () => {
@@ -363,7 +353,14 @@ const rewardCoupon = () => {
           </div>
         )}
 
-        <AdRewardDialog open={showAdDialog} onClose={() => setShowAdDialog(false)} onReward={rewardCoupon} />
+        <AdRewardDialog
+  open={showAdDialog}
+  onClose={() => setShowAdDialog(false)}
+  onReward={() => {
+    const newCoupons = Number(localStorage.getItem("coupons") || 0);
+    setCoupons(newCoupons);
+  }}
+/>
 
         {/* Controls below player */}
         <div className="mt-4 space-y-4">
