@@ -37,7 +37,7 @@ const AdRewardDialog = ({
     try {
       if (typeof window !== "undefined") {
         (window.adsbygoogle = window.adsbygoogle || []).push({
-          google_ad_client: "ca-pub-XXXXXXXX",
+          google_ad_client: "ca-pub-4196916672015192",
           enable_page_level_ads: true,
         });
       }
