@@ -4,7 +4,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
-import { AuthProvider } from "@/hooks/useAuth";
 import Navbar from "@/components/Navbar";
 import FloatingDonate from "@/components/FloatingDonate";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
@@ -34,7 +33,6 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <AuthProvider>
             <Navbar />
             <FloatingDonate />
             <ThemeSwitcher />
@@ -47,7 +45,6 @@ const App = () => (
               <Route path="/about" element={<AboutDeveloper />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
