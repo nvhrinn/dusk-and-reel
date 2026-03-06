@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Ticket, Play } from "lucide-react";
 import { toast } from "sonner";
 
@@ -15,17 +15,24 @@ const AdRewardDialog = ({
   const [countdown, setCountdown] = useState(5);
   const [done, setDone] = useState(false);
 
+  const rewarded = useRef(false);
+
   const addCoupon = () => {
+    if (rewarded.current) return; // anti double reward
+    rewarded.current = true;
+
     const coupons = Number(localStorage.getItem("coupons") || 0);
     const newCoupons = coupons + 1;
 
     localStorage.setItem("coupons", String(newCoupons));
 
-    onReward(); // 🔥 update state di WatchPage
+    onReward(); // update WatchPage
     toast.success("+1 Kupon didapat!");
   };
 
   const startAd = () => {
+    if (watching) return;
+
     setWatching(true);
     setCountdown(5);
 
@@ -33,16 +40,21 @@ const AdRewardDialog = ({
       setCountdown((c) => {
         if (c <= 1) {
           clearInterval(interval);
-          setDone(true);
+
           addCoupon();
+          setDone(true);
+          setWatching(false);
+
           return 0;
         }
+
         return c - 1;
       });
     }, 1000);
   };
 
   const handleClose = () => {
+    rewarded.current = false;
     setWatching(false);
     setDone(false);
     setCountdown(5);
@@ -59,10 +71,12 @@ const AdRewardDialog = ({
           <div className="text-center space-y-4">
             <Ticket className="w-10 h-10 text-primary mx-auto" />
 
-            <h3 className="font-bold text-lg">Kupon Habis!</h3>
+            <h3 className="font-bold text-lg">
+              Kupon Habis
+            </h3>
 
             <p className="text-sm text-muted-foreground">
-              Tonton iklan untuk mendapatkan 1 kupon.
+              Tonton iklan untuk mendapatkan 1 kupon gratis
             </p>
 
             <div className="flex gap-2 justify-center">
@@ -84,11 +98,15 @@ const AdRewardDialog = ({
           </div>
         )}
 
-        {watching && !done && (
+        {watching && (
           <div className="text-center space-y-4">
-            <div className="aspect-video bg-secondary rounded-lg flex items-center justify-center">
-              Ad placeholder — {countdown}s
+            <div className="aspect-video bg-secondary rounded-lg flex items-center justify-center text-sm text-muted-foreground">
+              Iklan berjalan... {countdown}s
             </div>
+
+            <p className="text-xs text-muted-foreground">
+              Tunggu sampai iklan selesai
+            </p>
           </div>
         )}
 
@@ -96,7 +114,13 @@ const AdRewardDialog = ({
           <div className="text-center space-y-4">
             <Ticket className="w-10 h-10 text-primary mx-auto" />
 
-            <h3 className="font-bold text-lg">+1 Kupon!</h3>
+            <h3 className="font-bold text-lg">
+              Kupon Berhasil Didapat
+            </h3>
+
+            <p className="text-sm text-muted-foreground">
+              Sekarang kamu bisa membuka episode
+            </p>
 
             <button
               onClick={handleClose}
