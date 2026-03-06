@@ -94,7 +94,9 @@ const [coupons, setCoupons] = useState(0);
 useEffect(() => {
   const u = getUser();
   setUser(u);
-  setCoupons(getCoupons());
+
+  const c = getCoupons();
+  setCouponsState(c);
 }, []);
   
   // Check if episode already unlocked
@@ -120,29 +122,23 @@ useEffect(() => {
   if (coupons > 0) {
     const newCoupons = coupons - 1;
 
-    setCoupons(newCoupons);
-    setCoupons(newCoupons);
+    setCouponsState(newCoupons);
+    setCoupons(newCoupons); // simpan ke localStorage
 
     unlockEpisode(epId);
     setEpisodeUnlocked(true);
+
+    toast.success("Episode berhasil dibuka");
   } else {
     setShowAdDialog(true);
   }
 };
 
 const rewardCoupon = () => {
+  const newCoupons = coupons + 1;
 
-  if (!user) return;
-
-  const updatedUser = {
-    ...user,
-    coupons: coupons + 1
-  };
-
-  localStorage.setItem("google_user", JSON.stringify(updatedUser));
-
-  setUser(updatedUser);
-  setCoupons(updatedUser.coupons);
+  setCouponsState(newCoupons);
+  setCoupons(newCoupons);
 
   toast.success("Kupon +1 berhasil didapat!");
 };
@@ -162,7 +158,7 @@ const googleLogin = useGoogleLogin({
 
       const profile = await res.json();
 
-      loginUser(profile);
+      localStorage.setItem("google_user", JSON.stringify(profile));
       setUser(profile);
 
       toast.success("Login berhasil");
@@ -365,16 +361,18 @@ const googleLogin = useGoogleLogin({
   open={showAdDialog}
   onClose={() => setShowAdDialog(false)}
   onReward={() => {
-    const newCoupons = coupons + 1;
+  const newCoupons = coupons + 1;
 
-    setCoupons(newCoupons);
-    setCoupons(newCoupons);
+  setCouponsState(newCoupons);
+  setCoupons(newCoupons);
 
-    unlockEpisode(epId!);
+  if (epId) {
+    unlockEpisode(epId);
     setEpisodeUnlocked(true);
+  }
 
-    setShowAdDialog(false);
-  }}
+  setShowAdDialog(false);
+}}
 />
 
         {/* Controls below player */}
