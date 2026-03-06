@@ -30,11 +30,12 @@ export function setCoupons(v: number) {
   localStorage.setItem("coupons", String(v));
 }
 
-export function unlockEpisode(epId: string) {
-  const unlocked = JSON.parse(localStorage.getItem("unlocked") || "[]");
-  if (!unlocked.includes(epId)) {
-    unlocked.push(epId);
-    localStorage.setItem("unlocked", JSON.stringify(unlocked));
+export const unlockEpisode = (epId: string) => {
+  const eps = getUnlockedEpisodes();
+
+  if (!eps.includes(epId)) {
+    eps.push(epId);
+    localStorage.setItem("unlocked_eps", JSON.stringify(eps));
   }
 }
 
