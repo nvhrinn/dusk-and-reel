@@ -74,9 +74,9 @@ const UserMenu = () => {
           Profil
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={logout} className="cursor-pointer text-destructive focus:text-destructive">
+        <DropdownMenuItem onClick={() => navigate("/about")} className="cursor-pointer">
           <LogOut className="w-4 h-4 mr-2" />
-          Keluar
+          About
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
