@@ -106,9 +106,9 @@ const AdRewardDialog = ({
             {/* ADSENSE */}
             <ins
               className="adsbygoogle"
-              style={{ display: "block" }}
+              style={{ display: "block", minHeight: "250px" }}
               data-ad-client="ca-pub-4196916672015192"
-              data-ad-slot="1234567890"
+              data-ad-slot="3432473630"
               data-ad-format="auto"
               data-full-width-responsive="true"
             />
