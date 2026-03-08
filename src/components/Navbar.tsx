@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Search, Home, Flame } from "lucide-react";
+import { Search, Home, Flame, User } from "lucide-react";
 import { useState } from "react";
 
 const Navbar = () => {
