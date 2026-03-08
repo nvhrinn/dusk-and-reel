@@ -1,7 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Search, Home, Flame } from "lucide-react";
 import { useState } from "react";
-import UserMenu from "@/components/UserMenu";
 
 const Navbar = () => {
   const [query, setQuery] = useState("");
@@ -30,7 +29,6 @@ const Navbar = () => {
             <Home className="w-4 h-4" />
             Home
           </Link>
-          <UserMenu />
 
           <form onSubmit={handleSearch} className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
