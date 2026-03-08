@@ -3,18 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { aniwatchApi } from "@/lib/api";
 import VideoPlayer from "@/components/VideoPlayer";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Monitor, Volume2, Languages, Settings, ChevronDown, LogIn, Ticket } from "lucide-react";
+import { ArrowLeft, Monitor, Volume2, Languages, Settings, ChevronDown, Ticket } from "lucide-react";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { useGoogleLogin } from "@react-oauth/google";
 import { toast } from "sonner";
 import AdRewardDialog from "@/components/AdRewardDialog";
-import {
-  getUser,
-  getCoupons,
-  setCoupons,
-  unlockEpisode,
-  getUnlockedEpisodes
-} from "@/lib/auth";
 
 
 const Dropdown = ({
