@@ -3,18 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { aniwatchApi } from "@/lib/api";
 import VideoPlayer from "@/components/VideoPlayer";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Monitor, Volume2, Languages, Settings, ChevronDown, LogIn, Ticket } from "lucide-react";
+import { ArrowLeft, Monitor, Volume2, Languages, Settings, ChevronDown, Ticket } from "lucide-react";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { useGoogleLogin } from "@react-oauth/google";
 import { toast } from "sonner";
 import AdRewardDialog from "@/components/AdRewardDialog";
-import {
-  getUser,
-  getCoupons,
-  setCoupons,
-  unlockEpisode,
-  getUnlockedEpisodes
-} from "@/lib/auth";
 
 
 const Dropdown = ({
@@ -73,100 +65,53 @@ const Dropdown = ({
   );
 };
 
+const getCoupons = (): number => Number(localStorage.getItem("coupons") || "0");
+const saveCoupons = (n: number) => localStorage.setItem("coupons", String(n));
+const getUnlockedEpisodes = (): string[] => {
+  try { return JSON.parse(localStorage.getItem("unlocked_episodes") || "[]"); } catch { return []; }
+};
+const unlockEpisode = (epId: string) => {
+  const list = getUnlockedEpisodes();
+  if (!list.includes(epId)) { list.push(epId); localStorage.setItem("unlocked_episodes", JSON.stringify(list)); }
+};
+
 const WatchPage = () => {
   const { id } = useParams<{ id: string }>();
   const [params] = useSearchParams();
   const epId = params.get("ep");
   const navigate = useNavigate();
-  const [user, setUser] = useState<any>(getUser());
-const [coupons, setCouponsState] = useState(0);
+  const [coupons, setCouponsState] = useState(getCoupons());
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [audioType, setAudioType] = useState<"sub" | "dub">("sub");
   const [cachedSubTracks, setCachedSubTracks] = useState<{ file: string; label: string; kind: string }[]>([]);
   const [episodeUnlocked, setEpisodeUnlocked] = useState(false);
   const [showAdDialog, setShowAdDialog] = useState(false);
 
-  // Player state lifted up
   const [qualities, setQualities] = useState<{ height: number; index: number }[]>([]);
   const [selectedQuality, setSelectedQuality] = useState<number>(-1);
   const [selectedTrack, setSelectedTrack] = useState<number>(0);
 
-useEffect(() => {
-  const u = getUser();
-  setUser(u);
-
-  const c = getCoupons();
-  setCouponsState(c);
-}, []);
-  
-  // Check if episode already unlocked
-useEffect(() => {
-  const coupons = Number(localStorage.getItem("coupons") || 0);
-
-  if (coupons > 10) {
-    localStorage.setItem("coupons", "2");
-  }
-}, []);
+  useEffect(() => {
+    const c = getCoupons();
+    if (c > 10) { saveCoupons(2); setCouponsState(2); } else { setCouponsState(c); }
+  }, []);
 
   useEffect(() => {
-  if (!epId) return;
+    if (!epId) return;
+    setEpisodeUnlocked(getUnlockedEpisodes().includes(epId));
+  }, [epId]);
 
-  const unlocked = getUnlockedEpisodes();
-
-  setEpisodeUnlocked(unlocked.includes(epId));
-}, [epId]);
-  
   const handleUnlock = () => {
-  if (!epId) return;
-
-  if (coupons > 0) {
-    const newCoupons = coupons - 1;
-
-    setCouponsState(newCoupons);
-    setCoupons(newCoupons); // simpan ke localStorage
-
-    unlockEpisode(epId);
-    setEpisodeUnlocked(true);
-
-    toast.success("Episode berhasil dibuka");
-  } else {
-    setShowAdDialog(true);
-  }
-};
-
-const rewardCoupon = () => {
-  const newCoupons = coupons + 1;
-
-  setCouponsState(newCoupons);
-  setCoupons(newCoupons);
-
-  toast.success("Kupon +1 berhasil didapat!");
-};
-  
-  
-const googleLogin = useGoogleLogin({
-  onSuccess: async (token) => {
-    try {
-      const res = await fetch(
-        "https://www.googleapis.com/oauth2/v3/userinfo",
-        {
-          headers: {
-            Authorization: `Bearer ${token.access_token}`,
-          },
-        }
-      );
-
-      const profile = await res.json();
-
-      localStorage.setItem("google_user", JSON.stringify(profile));
-      setUser(profile);
-
-      toast.success("Login berhasil");
-    } catch {
-      toast.error("Login gagal");
+    if (!epId) return;
+    if (coupons > 0) {
+      const n = coupons - 1;
+      setCouponsState(n); saveCoupons(n);
+      unlockEpisode(epId); setEpisodeUnlocked(true);
+      toast.success("Episode berhasil dibuka");
+    } else {
+      setShowAdDialog(true);
     }
-  },
-});
+  };
 
 
   const { data: episodes } = useQuery({
@@ -317,15 +262,7 @@ const googleLogin = useGoogleLogin({
         </button>
 
         {/* Coupon Gate */}
-        {!user ? (
-          <div className="w-full aspect-video rounded-lg bg-secondary flex flex-col items-center justify-center gap-4">
-            <LogIn className="w-10 h-10 text-muted-foreground" />
-            <p className="text-muted-foreground text-sm">Login untuk menonton</p>
-            <button onClick={() => googleLogin()} className="px-4 py-2 rounded-xl text-sm bg-primary text-primary-foreground font-medium">
-              Login dengan Google
-            </button>
-          </div>
-        ) : !episodeUnlocked ? (
+        {!episodeUnlocked ? (
           <div className="w-full aspect-video rounded-lg bg-secondary flex flex-col items-center justify-center gap-4">
             <Ticket className="w-10 h-10 text-muted-foreground" />
             <p className="text-foreground font-medium">Gunakan 1 kupon untuk menonton</p>
@@ -364,7 +301,7 @@ const googleLogin = useGoogleLogin({
   const newCoupons = coupons + 1;
 
   setCouponsState(newCoupons);
-  setCoupons(newCoupons);
+  saveCoupons(newCoupons);
 
   if (epId) {
     unlockEpisode(epId);
