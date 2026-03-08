@@ -262,15 +262,7 @@ const WatchPage = () => {
         </button>
 
         {/* Coupon Gate */}
-        {!user ? (
-          <div className="w-full aspect-video rounded-lg bg-secondary flex flex-col items-center justify-center gap-4">
-            <LogIn className="w-10 h-10 text-muted-foreground" />
-            <p className="text-muted-foreground text-sm">Login untuk menonton</p>
-            <button onClick={() => googleLogin()} className="px-4 py-2 rounded-xl text-sm bg-primary text-primary-foreground font-medium">
-              Login dengan Google
-            </button>
-          </div>
-        ) : !episodeUnlocked ? (
+        {!episodeUnlocked ? (
           <div className="w-full aspect-video rounded-lg bg-secondary flex flex-col items-center justify-center gap-4">
             <Ticket className="w-10 h-10 text-muted-foreground" />
             <p className="text-foreground font-medium">Gunakan 1 kupon untuk menonton</p>
