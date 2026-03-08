@@ -301,7 +301,7 @@ const WatchPage = () => {
   const newCoupons = coupons + 1;
 
   setCouponsState(newCoupons);
-  setCoupons(newCoupons);
+  saveCoupons(newCoupons);
 
   if (epId) {
     unlockEpisode(epId);
