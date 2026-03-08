@@ -8,6 +8,7 @@ import FloatingDonate from "@/components/FloatingDonate";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import Index from "./pages/Index";
 import SearchPage from "./pages/SearchPage";
+import AboutDeveloper from "./pages/AboutDeveloper";
 import AnimeDetail from "./pages/AnimeDetail";
 import WatchPage from "./pages/WatchPage";
 import NotFound from "./pages/NotFound";
@@ -35,6 +36,7 @@ const App = () => (
           <Route path="/search" element={<SearchPage />} />
           <Route path="/anime/:id" element={<AnimeDetail />} />
           <Route path="/watch/:id" element={<WatchPage />} />
+          <Route path="/about" element={<AboutDeveloper />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
