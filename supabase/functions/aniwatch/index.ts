@@ -133,7 +133,7 @@ Deno.serve(async (req) => {
         });
 
         if (topAiring.length === 0) {
-          $(".anif-block-ul").eq(1).find(".flw-item").each((_: number, el: cheerio.Element) => {
+          $(".anif-block-01 ul li").eq(1).find(".flw-item").each((_: number, el: cheerio.Element) => {
             topAiring.push(parseAnimeCard($, el));
           });
         }
@@ -144,7 +144,7 @@ Deno.serve(async (req) => {
         });
 
         if (popular.length === 0) {
-          $(".anif-block-ul").eq(2).find(".flw-item").each((_: number, el: cheerio.Element) => {
+          $(".anif-block-03 .anif-block-ul ul li").eq(2).find(".flw-item").each((_: number, el: cheerio.Element) => {
             popular.push(parseAnimeCard($, el));
           });
         }
