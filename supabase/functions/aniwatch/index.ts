@@ -112,8 +112,7 @@ Deno.serve(async (req) => {
 
         // Scrape additional sections
         const latestEpisodes: unknown[] = [];
-        const popular: unknown[] = [];
-        const topAiring: unknown[] = [];
+        
 
         // Latest Episode section
         $("section.block_area.block_area_home:has(.cat-heading:contains('Latest Episode'))").find(".flw-item").each((_: number, el: cheerio.Element) => {
@@ -128,26 +127,30 @@ Deno.serve(async (req) => {
         }
 
         // Top Airing section
-        $("section.block_area.block_area_home:has(.cat-heading:contains('Top Airing'))").find(".flw-item").each((_: number, el: cheerio.Element) => {
-          topAiring.push(parseAnimeCard($, el));
-        });
-
-        if (topAiring.length === 0) {
-          $(".anif-block-01 ul li").eq(1).find(".flw-item").each((_: number, el: cheerio.Element) => {
-            topAiring.push(parseAnimeCard($, el));
-          });
-        }
+        const topAiring: unknown[] = [];
+          $(".anif-block-01 ul li").each((_, el) => {
+    topAiring.push({
+      name: $(el).find(".film-name a").text().trim(),
+      id: $(el).find(".film-name a").attr("href")?.split("/")[1],
+      image: $(el).find(".film-poster-img").attr("data-src"),
+      sub: $(el).find(".tick-sub").text().replace(/\D/g, ""),
+      dub: $(el).find(".tick-dub").text().replace(/\D/g, ""),
+      type: $(el).find(".fdi-item").text().trim(),
+    });
+  });
 
         // Most Popular section
-        $("section.block_area.block_area_home:has(.cat-heading:contains('Most Popular'))").find(".flw-item").each((_: number, el: cheerio.Element) => {
-          popular.push(parseAnimeCard($, el));
-        });
-
-        if (popular.length === 0) {
-          $(".anif-block-03 .anif-block-ul ul li").eq(2).find(".flw-item").each((_: number, el: cheerio.Element) => {
-            popular.push(parseAnimeCard($, el));
-          });
-        }
+        const popular: unknown[] = [];
+          $(".anif-block-03 .anif-block-ul ul li").each((_, el) => {
+    popular.push({
+      name: $(el).find(".film-name a").text().trim(),
+      id: $(el).find(".film-name a").attr("href")?.split("/")[1],
+      image: $(el).find(".film-poster-img").attr("data-src"),
+      sub: $(el).find(".tick-sub").text().replace(/\D/g, ""),
+      dub: $(el).find(".tick-dub").text().replace(/\D/g, ""),
+      type: $(el).find(".fdi-item").text().trim(),
+    });
+  });
 
         // Upcoming Anime section
         const upcoming: unknown[] = [];
