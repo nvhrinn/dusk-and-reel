@@ -1,10 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { aniwatchApi, AnimeSearchResult } from "@/lib/api";
 import HeroSlider from "@/components/HeroSlider";
 import AnimeCard from "@/components/AnimeCard";
 import { SkeletonGrid, SkeletonHero } from "@/components/Skeletons";
-import { TrendingUp, Clock, Flame, Star, Calendar } from "lucide-react";
+import { TrendingUp, Clock, Flame, Star, Calendar, Sparkles, Film, Layers } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -41,6 +43,7 @@ const Section = ({
 };
 
 const Index = () => {
+  const navigate = useNavigate();
   const { data, isLoading, dataUpdatedAt } = useQuery({
     queryKey: ["home"],
     queryFn: () => aniwatchApi.home(),
@@ -68,6 +71,21 @@ const Index = () => {
       ) : (
         shuffled?.slides && <HeroSlider slides={shuffled.slides} />
       )}
+
+      {/* Category Buttons */}
+      <div className="container mx-auto px-4 py-4">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" className="gap-2" onClick={() => navigate("/special")}>
+            <Sparkles className="w-4 h-4" /> Special
+          </Button>
+          <Button variant="secondary" className="gap-2" onClick={() => navigate("/genres")}>
+            <Layers className="w-4 h-4" /> Genres
+          </Button>
+          <Button variant="secondary" className="gap-2" onClick={() => navigate("/movie")}>
+            <Film className="w-4 h-4" /> Movie
+          </Button>
+        </div>
+      </div>
 
       <section className="container mx-auto px-4 py-8">
         <div className="flex items-center gap-2 mb-6">

@@ -88,6 +88,16 @@ const normalizeAnimeId = (rawId: string) =>
     .split("?")[0]
     .split("#")[0];
 
+export interface GenreItem {
+  name: string;
+  id: string;
+}
+
+export interface PaginatedResults {
+  results: AnimeSearchResult[];
+  hasNextPage: boolean;
+}
+
 export const aniwatchApi = {
   home: () => callApi<HomeData>({ action: "home" }),
   search: (query: string, page = 1) => callApi<{ results: AnimeSearchResult[] }>({ action: "search", query, page }),
@@ -96,4 +106,8 @@ export const aniwatchApi = {
   servers: (episodeId: string) => callApi<{ sub: Server[]; dub: Server[] }>({ action: "servers", episodeId }),
   watch: (sourceId: string) => callApi<StreamData>({ action: "watch", sourceId }),
   translateSubtitle: (subtitleUrl: string) => callApi<{ vtt: string }>({ action: "translate-subtitle", subtitleUrl }),
+  special: (page = 1) => callApi<PaginatedResults>({ action: "special", page }),
+  movie: (page = 1) => callApi<PaginatedResults>({ action: "movie", page }),
+  genres: () => callApi<{ genres: GenreItem[] }>({ action: "genres" }),
+  genre: (id: string, page = 1) => callApi<PaginatedResults>({ action: "genre", id, page }),
 };
