@@ -8,9 +8,7 @@ const corsHeaders = {
 const BASE = "https://aniwatchtv.to";
 const HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36",
-  "Authorization": "Bearer sb_publishable_vRnUShvTRMvty68l7zVDlQ_Mr4XIpvF",
-  "apikey": "sb_publishable_vRnUShvTRMvty68l7zVDlQ_Mr4XIpvF",
-};
+  };
 
 async function fetchPage(url: string) {
   const res = await fetch(url, { headers: HEADERS });
