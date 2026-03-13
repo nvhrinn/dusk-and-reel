@@ -480,6 +480,58 @@ Deno.serve(async (req) => {
         break;
       }
 
+      case 'special': {
+        const url = `${BASE}/special?page=${page || 1}`;
+        const $ = await fetchPage(url);
+        const results: unknown[] = [];
+        $(".flw-item").each((_: number, el: cheerio.Element) => {
+          results.push(parseAnimeCard($, el));
+        });
+        const hasNext = $(".pagination .page-item").last().hasClass("active") === false && $(".pagination .page-item").length > 0;
+        result = { results, hasNextPage: hasNext };
+        break;
+      }
+
+      case 'movie': {
+        const url = (page || 1) > 1 ? `${BASE}/movie?page=${page}` : `${BASE}/movie`;
+        const $ = await fetchPage(url);
+        const results: unknown[] = [];
+        $(".film_list-wrap .flw-item, .flw-item").each((_: number, el: cheerio.Element) => {
+          results.push(parseAnimeCard($, el));
+        });
+        const hasNext = $(".pagination .page-item").last().hasClass("active") === false && $(".pagination .page-item").length > 0;
+        result = { results, hasNextPage: hasNext };
+        break;
+      }
+
+      case 'genres': {
+        const $ = await fetchPage(`${BASE}/home`);
+        const genres: unknown[] = [];
+        $("#sidebar_subs_genre a.nav-link").each((_: number, el: cheerio.Element) => {
+          const name = $(el).text().trim();
+          const link = $(el).attr("href");
+          if (!link) return;
+          genres.push({
+            name,
+            id: link.split("/")[2] || link.split("/").pop(),
+          });
+        });
+        result = { genres };
+        break;
+      }
+
+      case 'genre': {
+        const url = `${BASE}/genre/${id}?page=${page || 1}`;
+        const $ = await fetchPage(url);
+        const results: unknown[] = [];
+        $(".flw-item").each((_: number, el: cheerio.Element) => {
+          results.push(parseAnimeCard($, el));
+        });
+        const hasNext = $(".pagination .page-item").last().hasClass("active") === false && $(".pagination .page-item").length > 0;
+        result = { results, hasNextPage: hasNext };
+        break;
+      }
+
         case 'translate-subtitle': {
   if (!subtitleUrl) throw new Error("subtitleUrl required");
 
