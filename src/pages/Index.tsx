@@ -74,7 +74,7 @@ const Index = () => {
 
       {/* Category Buttons */}
 <div className="container mx-auto px-4 py-4">
-  <div className="flex flex-wrap gap-3">
+  <div className="flex flex-wrap gap-2">
     
     <button
       onClick={() => navigate("/special")}
