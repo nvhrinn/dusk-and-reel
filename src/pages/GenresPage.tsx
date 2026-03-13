@@ -32,7 +32,7 @@ const GenresPage = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center gap-2 mb-6">
           <Layers className="w-6 h-6 text-primary" />
-          <h1 className="font-display font-bold text-2xl md:text-3xl">Genres</h1>
+          <h1 className="font-display font-bold text-2xl md:text-3xl">Choose Anime Genre</h1>
         </div>
 
         {genresLoading ? (
