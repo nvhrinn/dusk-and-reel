@@ -75,49 +75,29 @@ const Index = () => {
       {/* Category Buttons */}
 <div className="container mx-auto px-4 py-4">
   <div className="flex flex-wrap gap-2">
-    
-    <button
+    <Button
+      variant="secondary"
+      className="gap-2 transition-all duration-150 active:scale-90 active:shadow-inner"
       onClick={() => navigate("/special")}
-      className="flex items-center gap-2 rounded-xl 
-      bg-white/10 backdrop-blur-xl border border-white/20
-      shadow-lg shadow-black/10
-      text-white font-medium
-      transition-all duration-200
-      hover:bg-white/20 hover:scale-105
-      active:scale-95 active:shadow-inner"
     >
-      <Sparkles className="w-4 h-4" />
-      Special
-    </button>
+      <Sparkles className="w-4 h-4" /> Special
+    </Button>
 
-    <button
+    <Button
+      variant="secondary"
+      className="gap-2 transition-all duration-150 active:scale-90 active:shadow-inner"
       onClick={() => navigate("/genres")}
-      className="flex items-center gap-2 rounded-xl
-      bg-white/10 backdrop-blur-xl border border-white/20
-      shadow-lg shadow-black/10
-      text-white font-medium
-      transition-all duration-200
-      hover:bg-white/20 hover:scale-105
-      active:scale-95 active:shadow-inner"
     >
-      <Layers className="w-4 h-4" />
-      Genres
-    </button>
+      <Layers className="w-4 h-4" /> Genres
+    </Button>
 
-    <button
+    <Button
+      variant="secondary"
+      className="gap-2 transition-all duration-150 active:scale-90 active:shadow-inner"
       onClick={() => navigate("/movie")}
-      className="flex items-center gap-2 rounded-xl 
-      bg-white/10 backdrop-blur-xl border border-white/20
-      shadow-lg shadow-black/10
-      text-white font-medium
-      transition-all duration-200
-      hover:bg-white/20 hover:scale-105
-      active:scale-95 active:shadow-inner"
     >
-      <Film className="w-4 h-4" />
-      Movie
-    </button>
-
+      <Film className="w-4 h-4" /> Movie
+    </Button>
   </div>
 </div>
 
