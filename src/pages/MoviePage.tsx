@@ -19,7 +19,7 @@ const MoviePage = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center gap-2 mb-6">
           <Film className="w-6 h-6 text-primary" />
-          <h1 className="font-display font-bold text-2xl md:text-3xl">Movie</h1>
+          <h1 className="font-display font-bold text-2xl md:text-3xl">Movie Anime</h1>
         </div>
 
         {isLoading ? (
@@ -33,14 +33,14 @@ const MoviePage = () => {
             </div>
 
             {data?.results?.length === 0 && (
-              <p className="text-center text-muted-foreground py-12">Tidak ada hasil.</p>
+              <p className="text-center text-muted-foreground py-12">No result.</p>
             )}
 
             <div className="flex justify-center items-center gap-3 py-8">
               <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
                 <ChevronLeft className="w-4 h-4 mr-1" /> Prev
               </Button>
-              <span className="text-sm text-muted-foreground">Halaman {page}</span>
+              <span className="text-sm text-muted-foreground">Page {page}</span>
               <Button variant="outline" size="sm" disabled={!data?.hasNextPage} onClick={() => setPage(p => p + 1)}>
                 Next <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
