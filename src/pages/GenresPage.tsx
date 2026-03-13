@@ -69,14 +69,14 @@ const GenresPage = () => {
                 </div>
 
                 {animeData?.results?.length === 0 && (
-                  <p className="text-center text-muted-foreground py-12">Tidak ada hasil.</p>
+                  <p className="text-center text-muted-foreground py-12">No result.</p>
                 )}
 
                 <div className="flex justify-center items-center gap-3 py-8">
                   <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
                     <ChevronLeft className="w-4 h-4 mr-1" /> Prev
                   </Button>
-                  <span className="text-sm text-muted-foreground">Halaman {page}</span>
+                  <span className="text-sm text-muted-foreground">Page {page}</span>
                   <Button variant="outline" size="sm" disabled={!animeData?.hasNextPage} onClick={() => setPage(p => p + 1)}>
                     Next <ChevronRight className="w-4 h-4 ml-1" />
                   </Button>
@@ -87,7 +87,7 @@ const GenresPage = () => {
         )}
 
         {!selectedGenre && !genresLoading && (
-          <p className="text-center text-muted-foreground py-12">Pilih genre untuk melihat anime.</p>
+          <p className="text-center text-muted-foreground py-12">Select a genre to watch anime.</p>
         )}
       </div>
     </div>
