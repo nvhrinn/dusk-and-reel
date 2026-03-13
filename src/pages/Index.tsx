@@ -1,10 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { aniwatchApi, AnimeSearchResult } from "@/lib/api";
 import HeroSlider from "@/components/HeroSlider";
 import AnimeCard from "@/components/AnimeCard";
 import { SkeletonGrid, SkeletonHero } from "@/components/Skeletons";
-import { TrendingUp, Clock, Flame, Star, Calendar } from "lucide-react";
+import { TrendingUp, Clock, Flame, Star, Calendar, Sparkles, Film, Layers } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
