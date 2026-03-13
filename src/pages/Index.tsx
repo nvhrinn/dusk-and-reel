@@ -43,6 +43,7 @@ const Section = ({
 };
 
 const Index = () => {
+  const navigate = useNavigate();
   const { data, isLoading, dataUpdatedAt } = useQuery({
     queryKey: ["home"],
     queryFn: () => aniwatchApi.home(),
