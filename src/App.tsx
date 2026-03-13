@@ -8,9 +8,11 @@ import FloatingDonate from "@/components/FloatingDonate";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import Index from "./pages/Index";
 import SearchPage from "./pages/SearchPage";
-import AboutDeveloper from "./pages/AboutDeveloper";
 import AnimeDetail from "./pages/AnimeDetail";
 import WatchPage from "./pages/WatchPage";
+import SpecialPage from "./pages/SpecialPage";
+import MoviePage from "./pages/MoviePage";
+import GenresPage from "./pages/GenresPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -36,7 +38,9 @@ const App = () => (
           <Route path="/search" element={<SearchPage />} />
           <Route path="/anime/:id" element={<AnimeDetail />} />
           <Route path="/watch/:id" element={<WatchPage />} />
-          <Route path="/about" element={<AboutDeveloper />} />
+          <Route path="/special" element={<SpecialPage />} />
+          <Route path="/movie" element={<MoviePage />} />
+          <Route path="/genres" element={<GenresPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
