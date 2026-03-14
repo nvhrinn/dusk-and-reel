@@ -156,17 +156,20 @@ const HeroSlider = ({ slides }: HeroSliderProps) => {
       {slides.length > 1 && (
         <>
           <button
-            onClick={() => goTo((current - 1 + slides.length) % slides.length)}
-            className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-2xl glass-clear flex items-center justify-center text-foreground hover:bg-secondary transition-colors"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <button
-            onClick={() => goTo((current + 1) % slides.length)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-2xl glass-clear flex items-center justify-center text-foreground hover:bg-secondary transition-colors"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
+  onClick={() => goTo((current - 1 + slides.length) % slides.length)}
+  className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-2xl flex items-center justify-center text-foreground transition-colors"
+>
+  <span className="glass-clear absolute inset-0 rounded-2xl"></span>
+  <ChevronLeft className="relative w-5 h-5" />
+</button>
+
+<button
+  onClick={() => goTo((current + 1) % slides.length)}
+  className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-2xl flex items-center justify-center text-foreground transition-colors"
+>
+  <span className="glass-clear absolute inset-0 rounded-2xl"></span>
+  <ChevronRight className="relative w-5 h-5" />
+</button>
 
           <div className="absolute bottom-4 right-6 md:right-12 flex gap-1.5">
             {slides.map((_, i) => (
