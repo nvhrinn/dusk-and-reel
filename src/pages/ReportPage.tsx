@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { supabase } from "@/lib/api";
 
 const ReportPage = () => {
   const [message, setMessage] = useState("");
@@ -6,29 +7,27 @@ const ReportPage = () => {
 
   const sendReport = async (e) => {
     e.preventDefault();
+
+    if (!message || message.length < 5) {
+      alert("Pesan terlalu pendek");
+      return;
+    }
+
     setLoading(true);
 
-    const res = await fetch(
-      "https://qpnbvcgbcmxjhohguztm.supabase.co/functions/v1/report",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message,
-          page: window.location.href,
-        }),
-      }
-    );
+    const { data, error } = await supabase.functions.invoke("report", {
+      body: {
+        message,
+        page: window.location.href,
+      },
+    });
 
-    const data = await res.json();
-
-    if (data.success) {
+    if (error) {
+      alert("Gagal mengirim laporan");
+      console.error(error);
+    } else {
       alert("Report berhasil dikirim");
       setMessage("");
-    } else {
-      alert(data.error);
     }
 
     setLoading(false);
@@ -44,9 +43,9 @@ const ReportPage = () => {
       >
         <textarea
           required
-          placeholder="Jelaskan masalah yang terjadi..."
           value={message}
           onChange={(e) => setMessage(e.target.value)}
+          placeholder="Jelaskan masalah yang terjadi..."
           className="w-full border rounded-lg p-3 h-32 bg-transparent"
         />
 
