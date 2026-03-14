@@ -255,6 +255,7 @@
 
   opacity: 0.6;
   pointer-events: none;
+  z-index: 0;
 }
 
   .glass-strong {
