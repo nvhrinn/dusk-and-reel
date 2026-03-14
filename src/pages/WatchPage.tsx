@@ -403,6 +403,15 @@ const WatchPage = () => {
                 </button>
               ))}
             </div>
+            <p className="mt-4 text-sm text-muted-foreground flex items-center gap-1">
+  ⚠️ If you encounter video playback errors or other problems
+  <button
+    onClick={() => navigate("/report")}
+    className="text-primary underline hover:text-primary/80"
+  >
+    please click here
+  </button>
+</p>
           </section>
         )}
       </div>
