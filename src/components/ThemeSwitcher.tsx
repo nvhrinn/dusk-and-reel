@@ -24,7 +24,7 @@ const ThemeSwitcher = () => {
     <div className="fixed bottom-6 left-6 z-50">
       <button
         onClick={() => setOpen(!open)}
-        className="w-11 h-11 rounded-2xl glass-strong flex items-center justify-center text-foreground hover:scale-110 active:scale-95 transition-transform"
+        className="w-11 h-11 rounded-2xl glass-sm flex items-center justify-center text-foreground hover:scale-110 active:scale-95 transition-transform"
         aria-label="Change theme color"
       >
         <Palette className="w-5 h-5" />
