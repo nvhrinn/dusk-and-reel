@@ -7,6 +7,7 @@ import Navbar from "@/components/Navbar";
 import FloatingDonate from "@/components/FloatingDonate";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import Index from "./pages/Index";
+import AboutDeveloper from "./pages/AboutDeveloper";
 import SearchPage from "./pages/SearchPage";
 import AnimeDetail from "./pages/AnimeDetail";
 import WatchPage from "./pages/WatchPage";
@@ -35,6 +36,7 @@ const App = () => (
         <ThemeSwitcher />
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/about" element={<AboutDeveloper />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/anime/:id" element={<AnimeDetail />} />
           <Route path="/watch/:id" element={<WatchPage />} />
