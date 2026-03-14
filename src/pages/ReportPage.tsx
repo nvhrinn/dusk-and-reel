@@ -9,7 +9,7 @@ const ReportPage = () => {
     setLoading(true);
 
     const res = await fetch(
-      "https://YOURPROJECT.supabase.co/functions/v1/report",
+      "https://qpnbvcgbcmxjhohguztm.supabase.co/functions/v1/report",
       {
         method: "POST",
         headers: {
