@@ -219,6 +219,15 @@
   pointer-events: none;
 }
 
+  .glass-clear {
+  background: hsla(var(--glass-bg) / 0.08);
+  backdrop-filter: blur(4px) saturate(120%);
+  -webkit-backdrop-filter: blur(4px) saturate(120%);
+  border: 1px solid hsla(var(--glass-border) / 0.2);
+
+  transform: translateZ(0);
+  }
+
   .glass-strong {
   background: linear-gradient(
     to bottom,
