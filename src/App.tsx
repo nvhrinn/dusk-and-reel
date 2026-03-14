@@ -15,6 +15,7 @@ import SpecialPage from "./pages/SpecialPage";
 import MoviePage from "./pages/MoviePage";
 import GenresPage from "./pages/GenresPage";
 import NotFound from "./pages/NotFound";
+import ReportPage from "./pages/ReportPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,6 +38,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/about" element={<AboutDeveloper />} />
+          <Route path="/report" element={<ReportPage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/anime/:id" element={<AnimeDetail />} />
           <Route path="/watch/:id" element={<WatchPage />} />
