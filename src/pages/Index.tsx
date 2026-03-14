@@ -76,24 +76,21 @@ const Index = () => {
 <div className="container mx-auto px-4 py-4">
   <div className="flex flex-wrap gap-2">
     <Button
-      variant="secondary"
-      className="gap-2 transition-all duration-150 active:scale-90 active:shadow-inner"
+      className="glass-clear gap-2 text-foreground border-0 transition-all duration-150 active:scale-90 active:shadow-inner"
       onClick={() => navigate("/special")}
     >
       <Sparkles className="w-4 h-4" /> Special
     </Button>
 
     <Button
-      variant="secondary"
-      className="gap-2 transition-all duration-150 active:scale-90 active:shadow-inner"
+      className="glass-clear gap-2 text-foreground border-0 transition-all duration-150 active:scale-90 active:shadow-inner"
       onClick={() => navigate("/genres")}
     >
       <Layers className="w-4 h-4" /> Genres
     </Button>
 
     <Button
-      variant="secondary"
-      className="gap-2 transition-all duration-150 active:scale-90 active:shadow-inner"
+      className="glass-clear gap-2 text-foreground border-0 transition-all duration-150 active:scale-90 active:shadow-inner"
       onClick={() => navigate("/movie")}
     >
       <Film className="w-4 h-4" /> Movie
