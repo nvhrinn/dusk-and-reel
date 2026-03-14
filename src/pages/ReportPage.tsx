@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { supabase } from "@/lib/api";
+import { supabase } from "@/intregations/supabase/client";
 
 const ReportPage = () => {
   const [message, setMessage] = useState("");
