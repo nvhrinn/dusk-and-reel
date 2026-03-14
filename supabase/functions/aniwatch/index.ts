@@ -532,7 +532,7 @@ Deno.serve(async (req) => {
         break;
       }
 
-        case 'translate-subtitle': {
+ case 'translate-subtitle': {
   if (!subtitleUrl) throw new Error("subtitleUrl required");
 
   const subRes = await fetch(subtitleUrl);
@@ -553,7 +553,7 @@ Deno.serve(async (req) => {
       i++;
 
       while (i < lines.length && lines[i].trim() !== "") {
-        textLines.push(lines[i]); // jangan trim supaya format aman
+        textLines.push(lines[i]);
         i++;
       }
 
@@ -568,52 +568,40 @@ Deno.serve(async (req) => {
 
   if (!cues.length) throw new Error("No subtitle cues found");
 
-  const translateTexts = async (texts: string[]): Promise<string[]> => {
+  const translateBatch = async (texts: string[]): Promise<string[]> => {
 
-    // ==========================
-    // 1️⃣ GOOGLE TRANSLATE
-    // ==========================
+    const joined = texts.join("\n");
+
+    // =====================
+    // GOOGLE TRANSLATE
+    // =====================
     try {
-      const googleResults = await Promise.all(
-        texts.map(async (text) => {
-          try {
-            const url =
-              `https://translate.googleapis.com/translate_a/single` +
-              `?client=gtx&sl=auto&tl=id&dt=t&q=${encodeURIComponent(text)}`;
+      const url =
+        `https://translate.googleapis.com/translate_a/single` +
+        `?client=gtx&sl=auto&tl=id&dt=t&q=${encodeURIComponent(joined)}`;
 
-            const res = await fetch(url);
-            if (!res.ok) return text;
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
 
-            const data = await res.json();
+        const translated = Array.isArray(data?.[0])
+          ? data[0].map((p: any) => p?.[0] ?? "").join("")
+          : "";
 
-            const translated = Array.isArray(data?.[0])
-              ? data[0].map((p: any) => p?.[0] ?? "").join("")
-              : "";
+        const split = translated.split("\n");
 
-            return translated || text;
-          } catch {
-            return text;
-          }
-        })
-      );
-
-      // cek apakah benar-benar terjemah
-      const changed = googleResults.some(
-        (t, i) => t.trim() !== texts[i].trim()
-      );
-
-      if (changed) return googleResults;
-
+        if (split.length === texts.length) {
+          return split;
+        }
+      }
     } catch {}
 
-    // ==========================
-    // 2️⃣ GEMINI FALLBACK
-    // ==========================
+    // =====================
+    // GEMINI FALLBACK
+    // =====================
     try {
-
-
       const aiRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyBRjO26g8mFo6CqVAZn3PfqGTJ_jYTTStQ`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=API_KEY`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -622,8 +610,8 @@ Deno.serve(async (req) => {
               parts: [{
                 text:
                   "Terjemahkan ke Bahasa Indonesia.\n" +
-                  "PERTAHANKAN baris baru.\n" +
-                  "Balas HANYA dalam bentuk JSON array string.\n\n" +
+                  "Pertahankan jumlah baris.\n" +
+                  "Balas hanya JSON array.\n\n" +
                   JSON.stringify(texts)
               }]
             }]
@@ -631,41 +619,50 @@ Deno.serve(async (req) => {
         }
       );
 
-      if (!aiRes.ok) return texts;
+      if (aiRes.ok) {
+        const ai = await aiRes.json();
+        const raw = ai?.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
 
-      const ai = await aiRes.json();
-      const raw = ai?.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
+        const cleaned = raw.replace(/```json|```/g, "").trim();
+        const parsed = JSON.parse(cleaned);
 
-      const cleaned = raw.replace(/```json|```/g, "").trim();
-      const parsed = JSON.parse(cleaned);
-
-      if (Array.isArray(parsed)) {
-        return texts.map((orig, i) =>
-          typeof parsed[i] === "string" && parsed[i].trim()
-            ? parsed[i]
-            : orig
-        );
+        if (Array.isArray(parsed)) {
+          return parsed.map((t, i) =>
+            typeof t === "string" && t.trim() ? t : texts[i]
+          );
+        }
       }
-
     } catch {}
 
     return texts;
   };
 
   const translatedCues: string[] = [];
-  const BATCH_SIZE = 20;
+  const BATCH_SIZE = 25;
 
-  for (let i = 0; i < cues.length; i++) {
-    const cue = cues[i];
-    const translated = await translateTexts(cue.text);
-    translatedCues.push(cue.timestamp + "\n" + translated.join("\n"));
+  for (let i = 0; i < cues.length; i += BATCH_SIZE) {
+
+    const batch = cues.slice(i, i + BATCH_SIZE);
+
+    const texts = batch.map(c => c.text.join("\n"));
+
+    const translated = await translateBatch(texts);
+
+    batch.forEach((cue, idx) => {
+      translatedCues.push(
+        cue.timestamp + "\n" + translated[idx]
+      );
+    });
+
   }
 
   const vtt = "WEBVTT\n\n" + translatedCues.join("\n\n");
+
   result = { vtt };
   break;
 }
-            
+      
+
 
       default:
         return new Response(JSON.stringify({ error: "Invalid action" }), {
