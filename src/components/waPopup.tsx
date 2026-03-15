@@ -32,46 +32,59 @@ export default function JoinWhatsAppPopup() {
       <Dialog.Portal>
 
         {/* overlay */}
-        <Dialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-lg z-50" />
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xl animate-in fade-in" />
 
         {/* modal */}
-        <Dialog.Content className="fixed z-50 left-1/2 top-1/2 w-[92%] max-w-[420px] -translate-x-1/2 -translate-y-1/2">
+        <Dialog.Content
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+          className="fixed z-50 left-1/2 top-1/2 w-[92%] max-w-[420px] -translate-x-1/2 -translate-y-1/2 animate-in zoom-in-95 fade-in"
+        >
 
-          <div className="relative rounded-[32px] border border-white/20 bg-white/10 backdrop-blur-2xl p-7 shadow-2xl text-center">
+          <div className="relative rounded-[34px] border border-white/20 bg-white/10 backdrop-blur-3xl p-8 shadow-[0_20px_80px_rgba(0,0,0,0.6)] text-center overflow-hidden">
 
+            {/* glass highlight */}
+            <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
+
+            {/* close button */}
             <button
               onClick={closePopup}
-              className="absolute right-4 top-4 rounded-full p-1 bg-white/10 hover:bg-white/20"
+              className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-all"
             >
-              <X size={16} className="text-white" />
+              <X size={14} className="text-white/80" />
             </button>
 
-            <div className="flex justify-center mb-4">
-              <div className="p-4 bg-green-500 rounded-full">
-                <MessageCircle size={30} className="text-white"/>
+            {/* icon */}
+            <div className="flex justify-center mb-5">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-green-500/90 shadow-lg">
+                <MessageCircle size={28} className="text-white" />
               </div>
             </div>
 
+            {/* title */}
             <Dialog.Title className="text-white text-xl font-semibold mb-2">
               Join WhatsApp Channel
             </Dialog.Title>
 
-            <Dialog.Description className="text-gray-300 text-sm mb-6">
-              Dapatkan update anime terbaru dan episode baru langsung di WhatsApp.
+            {/* desc */}
+            <Dialog.Description className="text-gray-300 text-sm mb-6 leading-relaxed">
+              Dapatkan update anime terbaru dan episode baru langsung dari
+              channel WhatsApp kami.
             </Dialog.Description>
 
+            {/* buttons */}
             <div className="flex justify-center gap-3">
 
               <button
                 onClick={joinWhatsApp}
-                className="px-5 py-2 rounded-full bg-green-500 hover:bg-green-600 text-white"
+                className="px-6 py-2.5 rounded-full bg-green-500 hover:bg-green-600 text-white font-medium transition active:scale-95"
               >
                 Join Channel
               </button>
 
               <button
                 onClick={closePopup}
-                className="px-5 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white"
+                className="px-6 py-2.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 text-white transition"
               >
                 Nanti saja
               </button>
