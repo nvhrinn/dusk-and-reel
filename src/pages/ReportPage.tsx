@@ -15,7 +15,7 @@ const ReportPage = () => {
 
     setLoading(true);
 
-    const { data, error } = await supabase.functions.invoke("reportv2", {
+    const { data, error } = await supabase.functions.invoke("reportv3", {
       body: {
         message,
         page: window.location.href,
