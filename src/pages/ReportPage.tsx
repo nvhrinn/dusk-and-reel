@@ -23,8 +23,8 @@ const ReportPage = () => {
     });
 
     if (error) {
-      alert("Gagal mengirim laporan");
       console.error(error);
+      alert("Gagal mengirim laporan");
     } else {
       alert("Report berhasil dikirim");
       setMessage("");
