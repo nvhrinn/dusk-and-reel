@@ -49,7 +49,7 @@ export default function JoinWhatsAppPopup() {
             {/* close button */}
             <button
               onClick={closePopup}
-              className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 transition-all"
+              className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 backdrop-blur-md transition-all"
             >
               <X size={14} className="text-white/80" />
             </button>
@@ -77,14 +77,14 @@ export default function JoinWhatsAppPopup() {
 
               <button
                 onClick={joinWhatsApp}
-                className="px-6 py-2.5 rounded-md bg-green-500 hover:bg-green-600 text-white font-medium transition active:scale-95"
+                className="px-4 py-2 rounded-md bg-green-500 hover:bg-green-600 text-white font-medium transition active:scale-95"
               >
                 Join Channel
               </button>
 
               <button
                 onClick={closePopup}
-                className="px-6 py-2.5 rounded-md bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 text-white transition"
+                className="px-4 py-2 rounded-md bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/20 text-white transition"
               >
                 Nanti saja
               </button>
