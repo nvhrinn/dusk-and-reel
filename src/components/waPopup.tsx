@@ -32,13 +32,13 @@ export default function JoinWhatsAppPopup() {
       <Dialog.Portal>
 
         {/* overlay */}
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xl" />
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xl animate-fadeIn"/>
 
         {/* modal */}
         <Dialog.Content
           onPointerDownOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
-          className="fixed z-50 left-1/2 top-1/2 w-[92%] max-w-[420px] -translate-x-1/2 -translate-y-1/2"
+          className="fixed z-50 left-1/2 top-1/2 w-[92%] max-w-[420px] -translate-x-1/2 -translate-y-1/2 animate-popup"
         >
 
           <div className="relative rounded-[32px] bg-white/10 backdrop-blur-3xl p-8 shadow-[0_20px_80px_rgba(0,0,0,0.6)] text-center overflow-hidden">
@@ -49,15 +49,15 @@ export default function JoinWhatsAppPopup() {
             {/* close button */}
             <button
               onClick={closePopup}
-              className="absolute right-4 top-4 flex h-6 w-6 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md transition"
+              className="absolute right-4 top-4 flex h-6 w-6 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md transition-all duration-200 hover:scale-110 active:scale-95"
             >
-              <X size={12} className="text-white/80" />
+              <X size={12} className="text-white/80"/>
             </button>
 
             {/* icon */}
-            <div className="flex justify-center mb-5">
+            <div className="flex justify-center mb-5 animate-float">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-green-500 shadow-lg">
-                <MessageCircle size={24} className="text-white" />
+                <MessageCircle size={24} className="text-white"/>
               </div>
             </div>
 
@@ -77,14 +77,14 @@ export default function JoinWhatsAppPopup() {
 
               <button
                 onClick={joinWhatsApp}
-                className="px-5 py-2 rounded-full bg-green-500 hover:bg-green-600 text-white text-sm font-medium transition active:scale-95"
+                className="px-5 py-2 rounded-full bg-green-500 hover:bg-green-600 text-white text-sm font-medium transition-all duration-200 active:scale-95 hover:scale-105"
               >
                 Join Channel
               </button>
 
               <button
                 onClick={closePopup}
-                className="px-5 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white text-sm transition"
+                className="px-5 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white text-sm transition-all duration-200 hover:scale-105 active:scale-95"
               >
                 Nanti saja
               </button>
