@@ -16,7 +16,7 @@ import MoviePage from "./pages/MoviePage";
 import GenresPage from "./pages/GenresPage";
 import NotFound from "./pages/NotFound";
 import ReportPage from "./pages/ReportPage";
-import joinWhatsAppPopup from "@/components/waPopup";
+import JoinWhatsAppPopup from "@/components/waPopup";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -35,7 +35,7 @@ const App = () => (
       <BrowserRouter>
         <Navbar />
         <FloatingDonate />
-        <joinWhatsAppPopup />
+        <JoinWhatsAppPopup />
         <ThemeSwitcher />
         <Routes>
           <Route path="/" element={<Index />} />
