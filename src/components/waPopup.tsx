@@ -6,7 +6,7 @@ export default function JoinWhatsAppPopup() {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    const joined = localStorage.getItem("wa-joined");
+    const joined = localStorage.getItem("wapopup-sesion");
 
     if (!joined && window.location.pathname === "/") {
       const timer = setTimeout(() => {
@@ -23,7 +23,7 @@ export default function JoinWhatsAppPopup() {
 
   const joinWhatsApp = () => {
     localStorage.setItem("wa-joined", "true");
-    window.open("https://whatsapp.com/channel/CHANNELMU", "_blank");
+    window.open("https://whatsapp.com/channel/0029VbCGAUm3bbV9AjUZaY0v", "_blank");
     setOpen(false);
   };
 
