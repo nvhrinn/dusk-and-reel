@@ -12,7 +12,7 @@ declare global {
 const manualAds = [
   "https://raw.githubusercontent.com/nvhrinn/dusk-and-reel/refs/heads/main/src/assets/Gemini_Generated_Image_77zsij77zsij77zs.png",
   "https://raw.githubusercontent.com/nvhrinn/dusk-and-reel/refs/heads/main/src/assets/Gemini_Generated_Image_bjsm7cbjsm7cbjsm%20(1).png",
-  "https://via.placeholder.com/300x250?text=Join+Channel+WA",
+  "https://raw.githubusercontent.com/nvhrinn/dusk-and-reel/refs/heads/main/src/assets/Gemini_Generated_Image_bm8lm8bm8lm8bm8l.png",
 ];
 
 const AdRewardDialog = ({
