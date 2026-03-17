@@ -40,7 +40,7 @@ const AdRewardDialog = ({
 
     pickRandomAd();
     setWatching(true);
-    setCountdown(8);
+    setCountdown(15);
 
     const interval = setInterval(() => {
       setCountdown((c) => {
