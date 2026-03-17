@@ -10,7 +10,7 @@ declare global {
 
 // list iklan manual (ganti sesuai kebutuhanmu)
 const manualAds = [
-  "https://via.placeholder.com/300x250?text=Anime+Promo+1",
+  "https://raw.githubusercontent.com/nvhrinn/dusk-and-reel/refs/heads/main/src/assets/Gemini_Generated_Image_77zsij77zsij77zs.png",
   "https://via.placeholder.com/300x250?text=Anime+Promo+2",
   "https://via.placeholder.com/300x250?text=Join+Channel+WA",
 ];
