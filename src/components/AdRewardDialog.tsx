@@ -8,6 +8,13 @@ declare global {
   }
 }
 
+// list iklan manual (ganti sesuai kebutuhanmu)
+const manualAds = [
+  "https://via.placeholder.com/300x250?text=Anime+Promo+1",
+  "https://via.placeholder.com/300x250?text=Anime+Promo+2",
+  "https://via.placeholder.com/300x250?text=Join+Channel+WA",
+];
+
 const AdRewardDialog = ({
   open,
   onClose,
@@ -19,13 +26,36 @@ const AdRewardDialog = ({
 }) => {
   const [watching, setWatching] = useState(false);
   const [countdown, setCountdown] = useState(8);
+  const [adsLoaded, setAdsLoaded] = useState(true);
+  const [randomAd, setRandomAd] = useState("");
 
   useEffect(() => {
     if (open && watching) {
       try {
         (window.adsbygoogle = window.adsbygoogle || []).push({});
+
+        // fallback check (kalau adsense tidak muncul)
+        const timer = setTimeout(() => {
+          const adElement = document.querySelector(".adsbygoogle");
+
+          if (!adElement || adElement.innerHTML.trim() === "") {
+            setAdsLoaded(false);
+
+            // pilih iklan manual random
+            const random =
+              manualAds[Math.floor(Math.random() * manualAds.length)];
+            setRandomAd(random);
+          }
+        }, 2000);
+
+        return () => clearTimeout(timer);
       } catch (e) {
         console.log("Adsense error", e);
+        setAdsLoaded(false);
+
+        const random =
+          manualAds[Math.floor(Math.random() * manualAds.length)];
+        setRandomAd(random);
       }
     }
   }, [watching, open]);
@@ -104,14 +134,22 @@ const AdRewardDialog = ({
           <div className="text-center space-y-4">
 
             {/* ADSENSE */}
-            <ins
-              className="adsbygoogle"
-              style={{ display: "block", minHeight: "250px" }}
-              data-ad-client="ca-pub-4196916672015192"
-              data-ad-slot="3432473630"
-              data-ad-format="auto"
-              data-full-width-responsive="true"
-            />
+            {adsLoaded ? (
+              <ins
+                className="adsbygoogle"
+                style={{ display: "block", minHeight: "250px" }}
+                data-ad-client="ca-pub-4196916672015192"
+                data-ad-slot="3432473630"
+                data-ad-format="auto"
+                data-full-width-responsive="true"
+              />
+            ) : (
+              <img
+                src={randomAd}
+                className="w-full rounded-xl"
+                alt="Manual Ad"
+              />
+            )}
 
             <p className="text-xs text-muted-foreground">
               Tunggu {countdown} detik...
