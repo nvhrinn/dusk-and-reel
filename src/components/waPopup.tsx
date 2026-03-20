@@ -46,13 +46,8 @@ export default function JoinWhatsAppPopup() {
             {/* glass highlight */}
             <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
 
-            {/* close button */}
-            <button
-              onClick={closePopup}
-              className="absolute right-4 top-4 flex h-6 w-6 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md transition-all duration-200 hover:scale-110 active:scale-95"
-            >
-              <X size={12} className="text-white/80"/>
-            </button>
+            {/* close button dihilangkan */}
+            
 
             {/* icon */}
             <div className="flex justify-center mb-5 animate-float">
