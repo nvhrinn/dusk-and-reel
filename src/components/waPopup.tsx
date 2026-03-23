@@ -1,13 +1,11 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { useEffect, useState } from "react";
-import { MessageCircle, X } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 
 export default function JoinWhatsAppPopup() {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    const joined = localStorage.getItem("wapopup-sesion");
-
     if (window.location.pathname === "/") {
       const timer = setTimeout(() => {
         setOpen(true);
