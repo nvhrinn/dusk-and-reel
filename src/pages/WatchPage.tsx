@@ -175,8 +175,10 @@ const WatchPage = () => {
     queryFn: () => aniwatchApi.watch(selectedSourceId!),
     enabled: !!selectedSourceId,
     retry: 1,
-    staleTime: 5 * 60_000,   // 5 min — stream URLs are stable
-    gcTime: 15 * 60_000,
+    staleTime: 10 * 60_000,  // 10 min — stream URLs stable
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   const currentEp = episodes?.find((e) => e.epId === epId);
