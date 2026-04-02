@@ -138,9 +138,13 @@ Deno.serve(async (req) => {
         text = text.replace(/^(?!#)(?!https?:\/\/)(.+)$/gm, (match) => {
           return baseUrl + match.trim();
         });
+        // For m3u8, short cache; for segments, longer cache
+        const proxyCache = (contentType.includes('mpegurl') || targetUrl.endsWith('.m3u8'))
+          ? 'public, max-age=30'
+          : 'public, max-age=300';
         return new Response(text, {
           status: proxyRes.status,
-          headers: { ...corsHeaders, 'Content-Type': contentType },
+          headers: { ...corsHeaders, 'Content-Type': contentType, 'Cache-Control': proxyCache },
         });
       }
 
