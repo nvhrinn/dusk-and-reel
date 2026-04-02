@@ -713,41 +713,57 @@ async function processAction(
           }
         } catch { /* fallback */ }
 
-        // Provider 2: Lovable AI (Gemini via gateway)
-        try {
-          const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
-          if (lovableApiKey) {
-            const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${lovableApiKey}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                model: "google/gemini-2.5-flash-lite",
-                messages: [
-                  {
-                    role: "system",
-                    content: "You are a subtitle translator. Translate the given lines to Indonesian (Bahasa Indonesia). Keep the exact same number of lines. Reply ONLY with the translated lines, one per line. No numbering, no extra text."
-                  },
-                  {
-                    role: "user",
-                    content: joined
-                  }
-                ],
-              }),
-            });
+        // Provider 2: OpenRouter (ultra-fast AI)
+try {
+  const apiKey = Deno.env.get("OPENROUTER_API_KEY");
+  if (apiKey) {
 
-            if (aiRes.ok) {
-              const ai = await aiRes.json();
-              const raw = ai?.choices?.[0]?.message?.content || "";
-              const split = raw.trim().split("\n").filter((l: string) => l.trim());
-              if (split.length === texts.length) return split;
-              // If line count mismatch, try to align
-              if (split.length >= texts.length) return split.slice(0, texts.length);
-            }
+    const DELIM = "<<<SEP>>>";
+
+    const aiRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://your-site.com", // optional
+        "X-Title": "subtitle-translator"
+      },
+      body: JSON.stringify({
+        // 🔥 model cepat
+        model: "deepseek/deepseek-chat", 
+        temperature: 0,
+        max_tokens: 4000,
+        messages: [
+          {
+            role: "system",
+            content:
+              "Translate to Indonesian. Keep EXACT structure. Do not merge or split lines. Return ONLY translation separated by <<<SEP>>>."
+          },
+          {
+            role: "user",
+            content: texts.join(` ${DELIM} `)
           }
-        } catch { /* fallback */ }
+        ],
+      }),
+    });
+
+    if (aiRes.ok) {
+      const ai = await aiRes.json();
+      const raw = ai?.choices?.[0]?.message?.content || "";
+
+      let split = raw.split(DELIM).map((l: string) => l.trim()).filter(Boolean);
+
+      if (split.length !== texts.length) {
+        split = raw.split("\n").map((l: string) => l.trim()).filter(Boolean);
+      }
+
+      if (split.length === texts.length) return split;
+      if (split.length > texts.length) return split.slice(0, texts.length);
+
+      return texts.map((t, i) => split[i] || t);
+    }
+  }
+} catch { /* fallback */ }
 
         // Provider 3: MyMemory fallback
         try {
