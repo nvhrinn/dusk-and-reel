@@ -148,6 +148,8 @@ const WatchPage = () => {
     enabled: !!subSourceId,
     retry: 1,
     staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   useEffect(() => {
