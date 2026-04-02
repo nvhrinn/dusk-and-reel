@@ -118,16 +118,20 @@ const WatchPage = () => {
     queryKey: ["episodes", id],
     queryFn: () => aniwatchApi.episodes(id!),
     enabled: !!id,
-    staleTime: 10 * 60_000,  // 10 min — episodes rarely change
-    gcTime: 30 * 60_000,
+    staleTime: 30 * 60_000,   // 30 min — episodes rarely change
+    gcTime: 60 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   const { data: servers, isLoading: serversLoading } = useQuery({
     queryKey: ["servers", epId],
     queryFn: () => aniwatchApi.servers(epId!),
     enabled: !!epId,
-    staleTime: 2 * 60_000,
-    gcTime: 10 * 60_000,
+    staleTime: 5 * 60_000,    // 5 min
+    gcTime: 15 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   const megacloudServers = servers
