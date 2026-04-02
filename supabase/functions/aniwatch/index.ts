@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
       const body = await proxyRes.arrayBuffer();
       return new Response(body, {
         status: proxyRes.status,
-        headers: { ...corsHeaders, 'Content-Type': contentType },
+        headers: { ...corsHeaders, 'Content-Type': contentType, 'Cache-Control': 'public, max-age=300' },
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Proxy error';
