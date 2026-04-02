@@ -158,6 +158,15 @@ Deno.serve(async (req) => {
   try {
     const { action, query, page, id, episodeId, sourceId, subtitleUrl } = await req.json();
 
+    // Check in-memory cache
+    const cacheKey = JSON.stringify({ action, query, page, id, episodeId, sourceId, subtitleUrl });
+    const cached = getCached(cacheKey);
+    if (cached) {
+      return new Response(cached, {
+        headers: { ...corsHeaders, "Content-Type": "application/json", "X-Cache": "HIT" },
+      });
+    }
+
     let result: unknown;
 
     switch (action) {
