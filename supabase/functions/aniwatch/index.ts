@@ -8,7 +8,68 @@ const corsHeaders = {
 const BASE = "https://aniwatchtv.to";
 const HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36",
-  };
+};
+
+// ─── In-memory response cache ───
+interface CacheEntry { data: string; expiry: number; }
+const responseCache = new Map<string, CacheEntry>();
+const CACHE_TTL: Record<string, number> = {
+  home: 5 * 60_000,       // 5 min
+  search: 3 * 60_000,     // 3 min
+  info: 10 * 60_000,      // 10 min
+  episodes: 10 * 60_000,  // 10 min
+  servers: 2 * 60_000,    // 2 min
+  watch: 5 * 60_000,      // 5 min
+  special: 5 * 60_000,
+  movie: 5 * 60_000,
+  genres: 30 * 60_000,    // 30 min
+  genre: 5 * 60_000,
+  'translate-subtitle': 60 * 60_000, // 1 hour
+};
+const MAX_CACHE_SIZE = 500;
+
+function getCached(key: string): string | null {
+  const entry = responseCache.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expiry) { responseCache.delete(key); return null; }
+  return entry.data;
+}
+
+function setCache(key: string, data: string, ttl: number) {
+  // Evict oldest entries if cache is too large
+  if (responseCache.size >= MAX_CACHE_SIZE) {
+    const firstKey = responseCache.keys().next().value;
+    if (firstKey) responseCache.delete(firstKey);
+  }
+  responseCache.set(key, { data, expiry: Date.now() + ttl });
+}
+
+// ─── Rate limiting per IP ───
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_WINDOW = 60_000; // 1 minute
+const RATE_LIMIT_MAX = 60;        // max 60 requests/min per IP
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
+    return false;
+  }
+  entry.count++;
+  return entry.count > RATE_LIMIT_MAX;
+}
+
+// Clean up rate limit map periodically (every 100 requests)
+let rlCleanCounter = 0;
+function cleanupRateLimit() {
+  rlCleanCounter++;
+  if (rlCleanCounter % 100 !== 0) return;
+  const now = Date.now();
+  for (const [ip, entry] of rateLimitMap) {
+    if (now > entry.resetAt) rateLimitMap.delete(ip);
+  }
+}
 
 async function fetchPage(url: string) {
   const res = await fetch(url, { headers: HEADERS });
@@ -39,6 +100,17 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Rate limiting
+  const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("cf-connecting-ip") || "unknown";
+  cleanupRateLimit();
+  if (isRateLimited(clientIp)) {
+    return new Response(JSON.stringify({ error: "Too many requests. Please slow down." }), {
+      status: 429,
+      headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "30" },
+    });
+  }
+
   // GET = HLS proxy mode (bypass CDN CORS restrictions)
   if (req.method === 'GET') {
     try {
@@ -66,16 +138,20 @@ Deno.serve(async (req) => {
         text = text.replace(/^(?!#)(?!https?:\/\/)(.+)$/gm, (match) => {
           return baseUrl + match.trim();
         });
+        // For m3u8, short cache; for segments, longer cache
+        const proxyCache = (contentType.includes('mpegurl') || targetUrl.endsWith('.m3u8'))
+          ? 'public, max-age=30'
+          : 'public, max-age=300';
         return new Response(text, {
           status: proxyRes.status,
-          headers: { ...corsHeaders, 'Content-Type': contentType },
+          headers: { ...corsHeaders, 'Content-Type': contentType, 'Cache-Control': proxyCache },
         });
       }
 
       const body = await proxyRes.arrayBuffer();
       return new Response(body, {
         status: proxyRes.status,
-        headers: { ...corsHeaders, 'Content-Type': contentType },
+        headers: { ...corsHeaders, 'Content-Type': contentType, 'Cache-Control': 'public, max-age=300' },
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Proxy error';
@@ -85,6 +161,15 @@ Deno.serve(async (req) => {
 
   try {
     const { action, query, page, id, episodeId, sourceId, subtitleUrl } = await req.json();
+
+    // Check in-memory cache
+    const cacheKey = JSON.stringify({ action, query, page, id, episodeId, sourceId, subtitleUrl });
+    const cached = getCached(cacheKey);
+    if (cached) {
+      return new Response(cached, {
+        headers: { ...corsHeaders, "Content-Type": "application/json", "X-Cache": "HIT" },
+      });
+    }
 
     let result: unknown;
 
@@ -671,8 +756,12 @@ Deno.serve(async (req) => {
         });
     }
 
-    return new Response(JSON.stringify(result), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const responseBody = JSON.stringify(result);
+    const ttl = CACHE_TTL[action] || 3 * 60_000;
+    setCache(cacheKey, responseBody, ttl);
+
+    return new Response(responseBody, {
+      headers: { ...corsHeaders, "Content-Type": "application/json", "X-Cache": "MISS" },
     });
   } catch (error) {
     console.error("Aniwatch API error:", error);
