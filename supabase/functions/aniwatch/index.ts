@@ -752,8 +752,12 @@ Deno.serve(async (req) => {
         });
     }
 
-    return new Response(JSON.stringify(result), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const responseBody = JSON.stringify(result);
+    const ttl = CACHE_TTL[action] || 3 * 60_000;
+    setCache(cacheKey, responseBody, ttl);
+
+    return new Response(responseBody, {
+      headers: { ...corsHeaders, "Content-Type": "application/json", "X-Cache": "MISS" },
     });
   } catch (error) {
     console.error("Aniwatch API error:", error);
