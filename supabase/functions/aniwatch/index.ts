@@ -1,4 +1,5 @@
 import * as cheerio from "https://esm.sh/cheerio@1.0.0-rc.12";
+import CryptoJS from "https://esm.sh/crypto-js@4.2.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -6,9 +7,8 @@ const corsHeaders = {
 };
 
 const BASE = "https://aniwatchtv.to";
-const HEADERS = {
-  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-};
+const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+const HEADERS = { "User-Agent": UA };
 
 // ─── In-memory response cache (LRU-style) ───
 interface CacheEntry { data: string; expiry: number; }
@@ -19,7 +19,7 @@ const CACHE_TTL: Record<string, number> = {
   info: 10 * 60_000,
   episodes: 30 * 60_000,
   servers: 5 * 60_000,
-  watch: 15 * 60_000,
+  watch: 10 * 60_000,
   special: 5 * 60_000,
   movie: 5 * 60_000,
   genres: 30 * 60_000,
@@ -48,7 +48,7 @@ function setCache(key: string, data: string, ttl: number) {
 // ─── Rate limiting per IP ───
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT_WINDOW = 60_000;
-const RATE_LIMIT_MAX = 30;
+const RATE_LIMIT_MAX = 40;
 
 function isRateLimited(ip: string): boolean {
   const now = Date.now();
@@ -98,13 +98,12 @@ function parseAnimeCard($: cheerio.CheerioAPI, el: cheerio.Element) {
   };
 }
 
-// ─── Persistent subtitle cache using Supabase DB ───
+// ─── Persistent subtitle cache ───
 async function getCachedTranslation(subtitleUrlHash: string): Promise<string | null> {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_TRANSLATE_URL");
     const supabaseKey = Deno.env.get("SUPABASE_TRANSLATE_SERVICE_ROLE_KEY");
     if (!supabaseUrl || !supabaseKey) return null;
-
     const res = await fetch(
       `${supabaseUrl}/rest/v1/subtitle_cache?subtitle_url_hash=eq.${encodeURIComponent(subtitleUrlHash)}&select=translated_vtt&limit=1`,
       { headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` } }
@@ -120,7 +119,6 @@ async function saveCachedTranslation(subtitleUrlHash: string, originalUrl: strin
     const supabaseUrl = Deno.env.get("SUPABASE_TRANSLATE_URL");
     const supabaseKey = Deno.env.get("SUPABASE_TRANSLATE_SERVICE_ROLE_KEY");
     if (!supabaseUrl || !supabaseKey) return;
-
     await fetch(`${supabaseUrl}/rest/v1/subtitle_cache`, {
       method: "POST",
       headers: {
@@ -144,24 +142,184 @@ function simpleHash(str: string): string {
   return Math.abs(hash).toString(36);
 }
 
+// ─── MegaCloud Extraction ───
+const KEY_URLS = [
+  "https://raw.githubusercontent.com/enimax-anime/key/e1/key.txt",
+  "https://raw.githubusercontent.com/theonlymo/keys/e1/key",
+];
+
+async function decryptMegaCloudSources(encrypted: string): Promise<{ file: string; type: string }[]> {
+  for (const keyUrl of KEY_URLS) {
+    try {
+      const keysRes = await fetch(keyUrl, { headers: HEADERS });
+      if (!keysRes.ok) continue;
+      const keys: [number, number][] = JSON.parse(await keysRes.text());
+
+      let extractedKey = "";
+      let cipherText = encrypted;
+      let offset = 0;
+
+      for (const [start, length] of keys) {
+        const s = start - offset;
+        extractedKey += cipherText.slice(s, s + length);
+        cipherText = cipherText.slice(0, s) + cipherText.slice(s + length);
+        offset += length;
+      }
+
+      const decrypted = CryptoJS.AES.decrypt(cipherText, extractedKey).toString(CryptoJS.enc.Utf8);
+      if (decrypted) return JSON.parse(decrypted);
+    } catch (e) {
+      console.error(`Key provider ${keyUrl} failed:`, e);
+      continue;
+    }
+  }
+  throw new Error("Failed to decrypt sources");
+}
+
+async function extractMegaCloud(embedUrl: string): Promise<{
+  sources: { file: string; type: string }[];
+  tracks: { file: string; label: string; kind: string }[];
+  intro: { start: number; end: number };
+  outro: { start: number; end: number };
+}> {
+  const videoId = embedUrl.split("/").pop()?.split("?")[0];
+  if (!videoId) throw new Error("Invalid embed URL");
+
+  const sourcesRes = await fetch(
+    `https://megacloud.blog/embed-2/ajax/e-1/getSources?id=${videoId}`,
+    {
+      headers: {
+        "User-Agent": UA,
+        Referer: embedUrl,
+        "X-Requested-With": "XMLHttpRequest",
+        Accept: "*/*",
+      },
+    }
+  );
+  if (!sourcesRes.ok) throw new Error("Failed to get MegaCloud sources");
+  const data = await sourcesRes.json();
+
+  let sources = data.sources;
+  if (typeof sources === "string" && sources.length > 0) {
+    sources = await decryptMegaCloudSources(sources);
+  }
+
+  return {
+    sources: Array.isArray(sources) ? sources : [],
+    tracks: data.tracks || [],
+    intro: data.intro || { start: 0, end: 0 },
+    outro: data.outro || { start: 0, end: 0 },
+  };
+}
+
+// ─── HLS Proxy Handler ───
+const ALLOWED_DOMAINS = ["biananset", "megacloud", "xxriv", "eno.", "rapid-cloud"];
+
+async function handleHlsProxy(req: Request, targetUrl: string): Promise<Response> {
+  try {
+    const u = new URL(targetUrl);
+    if (!ALLOWED_DOMAINS.some((d) => u.hostname.includes(d))) {
+      return new Response("Blocked domain", { status: 403, headers: corsHeaders });
+    }
+  } catch {
+    return new Response("Invalid URL", { status: 400, headers: corsHeaders });
+  }
+
+  // Check cache for m3u8
+  if (targetUrl.includes(".m3u8")) {
+    const cached = getCached(`proxy:${targetUrl}`);
+    if (cached) {
+      return new Response(cached, {
+        headers: { ...corsHeaders, "Content-Type": "application/vnd.apple.mpegurl", "X-Cache": "HIT" },
+      });
+    }
+  }
+
+  const res = await fetch(targetUrl, {
+    headers: {
+      "User-Agent": UA,
+      Referer: "https://megacloud.blog/",
+      Origin: "https://megacloud.blog",
+    },
+  });
+
+  if (!res.ok) {
+    return new Response(`Upstream ${res.status}`, { status: res.status, headers: corsHeaders });
+  }
+
+  const ct = res.headers.get("content-type") || "";
+
+  // M3U8 manifest: rewrite URLs to go through proxy
+  if (targetUrl.includes(".m3u8") || ct.includes("mpegurl")) {
+    let text = await res.text();
+    const base = targetUrl.substring(0, targetUrl.lastIndexOf("/") + 1);
+    const reqUrl = new URL(req.url);
+    const proxyBase = `${reqUrl.origin}${reqUrl.pathname}`;
+
+    text = text.replace(/^(?!#)(?!https?:\/\/)(\S+)$/gm, (match) => {
+      const absolute = match.startsWith("/") ? new URL(match, targetUrl).href : base + match;
+      return `${proxyBase}?url=${encodeURIComponent(absolute)}`;
+    });
+
+    // Also rewrite absolute URLs in the manifest
+    text = text.replace(/^(https?:\/\/\S+)$/gm, (match) => {
+      try {
+        const mu = new URL(match);
+        if (ALLOWED_DOMAINS.some((d) => mu.hostname.includes(d))) {
+          return `${proxyBase}?url=${encodeURIComponent(match)}`;
+        }
+      } catch {}
+      return match;
+    });
+
+    setCache(`proxy:${targetUrl}`, text, 60_000);
+
+    return new Response(text, {
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/vnd.apple.mpegurl",
+        "Cache-Control": "no-cache",
+      },
+    });
+  }
+
+  // Segments: stream through without buffering
+  return new Response(res.body, {
+    headers: {
+      ...corsHeaders,
+      "Content-Type": ct || "video/mp2t",
+      "Cache-Control": "public, max-age=3600",
+    },
+  });
+}
+
+// ─── Main Handler ───
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Rate limiting
-  const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    req.headers.get("cf-connecting-ip") || "unknown";
+  const clientIp =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("cf-connecting-ip") ||
+    "unknown";
   cleanupRateLimit();
   if (isRateLimited(clientIp)) {
-    return new Response(JSON.stringify({ error: "Too many requests. Please slow down." }), {
+    return new Response(JSON.stringify({ error: "Too many requests" }), {
       status: 429,
       headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "30" },
     });
   }
 
-  // No more GET HLS proxy — all requests are POST
-  if (req.method !== 'POST') {
+  // GET: HLS proxy
+  if (req.method === "GET") {
+    const url = new URL(req.url);
+    const targetUrl = url.searchParams.get("url");
+    if (targetUrl) return handleHlsProxy(req, targetUrl);
+    return new Response("Not found", { status: 404, headers: corsHeaders });
+  }
+
+  if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -170,8 +328,8 @@ Deno.serve(async (req) => {
 
   try {
     const { action, query, page, id, episodeId, sourceId, subtitleUrl } = await req.json();
-
     const cacheKey = JSON.stringify({ action, query, page, id, episodeId, sourceId, subtitleUrl });
+
     const cached = getCached(cacheKey);
     if (cached) {
       return new Response(cached, {
@@ -181,20 +339,22 @@ Deno.serve(async (req) => {
 
     const existingFlight = inFlightRequests.get(cacheKey);
     if (existingFlight) {
-      const flightResult = await existingFlight;
-      return new Response(flightResult, {
+      const r = await existingFlight;
+      return new Response(r, {
         headers: { ...corsHeaders, "Content-Type": "application/json", "X-Cache": "DEDUP" },
       });
     }
 
-    const processPromise = processAction(action, { query, page, id, episodeId, sourceId, subtitleUrl });
+    const reqUrl = new URL(req.url);
+    const proxyBase = `${reqUrl.origin}${reqUrl.pathname}`;
+
+    const processPromise = processAction(action, { query, page, id, episodeId, sourceId, subtitleUrl }, proxyBase);
     inFlightRequests.set(cacheKey, processPromise);
 
     try {
       const responseBody = await processPromise;
       const ttl = CACHE_TTL[action] || 3 * 60_000;
       setCache(cacheKey, responseBody, ttl);
-
       return new Response(responseBody, {
         headers: { ...corsHeaders, "Content-Type": "application/json", "X-Cache": "MISS" },
       });
@@ -213,13 +373,14 @@ Deno.serve(async (req) => {
 
 async function processAction(
   action: string,
-  params: { query?: string; page?: number; id?: string; episodeId?: string; sourceId?: string; subtitleUrl?: string }
+  params: { query?: string; page?: number; id?: string; episodeId?: string; sourceId?: string; subtitleUrl?: string },
+  proxyBase: string
 ): Promise<string> {
   const { query, page, id, episodeId, sourceId, subtitleUrl } = params;
   let result: unknown;
 
   switch (action) {
-    case 'home': {
+    case "home": {
       const $ = await fetchPage(`${BASE}/home`);
       const slides: unknown[] = [];
       $(".deslide-item").each((_: number, el: cheerio.Element) => {
@@ -286,18 +447,16 @@ async function processAction(
       break;
     }
 
-    case 'search': {
+    case "search": {
       const url = `${BASE}/search?keyword=${encodeURIComponent(query!)}&page=${page || 1}`;
       const $ = await fetchPage(url);
       const results: unknown[] = [];
-      $(".flw-item").each((_: number, el: cheerio.Element) => {
-        results.push(parseAnimeCard($, el));
-      });
+      $(".flw-item").each((_: number, el: cheerio.Element) => { results.push(parseAnimeCard($, el)); });
       result = { results };
       break;
     }
 
-    case 'info': {
+    case "info": {
       const $ = await fetchPage(`${BASE}/${id}`);
       const aniDetail = $(".anisc-detail");
       const filmStats = $(".film-stats");
@@ -334,16 +493,12 @@ async function processAction(
       const description = aniDetail.find(".film-description .text").text().trim() ||
         $(".film-description .text").text().trim() ||
         $(".text").first().text().trim();
-
       const halfLen = Math.floor(description.length / 2);
       const cleanDesc = description.slice(0, halfLen) === description.slice(halfLen).trim()
-        ? description.slice(0, halfLen).trim()
-        : description;
+        ? description.slice(0, halfLen).trim() : description;
 
       const genres: string[] = [];
-      $(".item-list a[href*='genre']").each((_: number, el: cheerio.Element) => {
-        genres.push($(el).text().trim());
-      });
+      $(".item-list a[href*='genre']").each((_: number, el: cheerio.Element) => { genres.push($(el).text().trim()); });
       if (genres.length === 0) {
         $(".item-title a").each((_: number, el: cheerio.Element) => {
           const href = $(el).attr("href") || "";
@@ -356,166 +511,97 @@ async function processAction(
         jname: aniDetail.find(".dynamic-name").attr("data-jname") || $(".dynamic-name").attr("data-jname"),
         image: $(".film-poster img").attr("src") || $(".film-poster img").attr("data-src"),
         description: cleanDesc,
-        pg, quality, sub,
-        dub: dub || null,
-        totalEp: totalEp || null,
-        format, duration,
+        pg, quality, sub, dub: dub || null, totalEp: totalEp || null, format, duration,
         genre: genres,
-        id: $(".film-buttons a").attr("href")?.split("/watch/")[1] ||
-          $(".btn-play").attr("href")?.replace("/watch/", "") || null,
+        id: $(".film-buttons a").attr("href")?.split("/watch/")[1] || $(".btn-play").attr("href")?.replace("/watch/", "") || null,
       };
       break;
     }
 
-    case 'episodes': {
+    case "episodes": {
       const animeIdMatch = id!.match(/-(\d+)(?:\?.*)?$/) || id!.match(/(\d+)(?:\?.*)?$/);
       const animeId = animeIdMatch?.[1];
       if (!animeId) throw new Error("Invalid anime id");
-
       const res = await fetch(`${BASE}/ajax/v2/episode/list/${animeId}`, { headers: HEADERS });
       const data = await res.json();
       const $ = cheerio.load(data.html);
-
-      result = $(".ss-list .ep-item")
-        .map((_: number, el: cheerio.Element) => ({
-          order: $(el).find(".ssli-order").text().trim(),
-          name: $(el).find(".e-dynamic-name").text().trim(),
-          epId: $(el).attr("data-id") || null,
-        }))
-        .get();
+      result = $(".ss-list .ep-item").map((_: number, el: cheerio.Element) => ({
+        order: $(el).find(".ssli-order").text().trim(),
+        name: $(el).find(".e-dynamic-name").text().trim(),
+        epId: $(el).attr("data-id") || null,
+      })).get();
       break;
     }
 
-    case 'servers': {
+    case "servers": {
       const sId = episodeId!.toString().match(/\d+/)?.[0];
       if (!sId) throw new Error("Invalid episode id");
-
       const res = await fetch(`${BASE}/ajax/v2/episode/servers?episodeId=${sId}`, { headers: HEADERS });
       const data = await res.json();
       const $ = cheerio.load(data.html);
-
       const sub: unknown[] = [];
       const dub: unknown[] = [];
-
       $(".servers-sub .server-item").each((_: number, el: cheerio.Element) => {
-        sub.push({
-          server: $(el).text().trim().toLowerCase(),
-          serverId: $(el).attr("data-server-id"),
-          sourceId: $(el).attr("data-id"),
-        });
+        sub.push({ server: $(el).text().trim().toLowerCase(), serverId: $(el).attr("data-server-id"), sourceId: $(el).attr("data-id") });
       });
       $(".servers-dub .server-item").each((_: number, el: cheerio.Element) => {
-        dub.push({
-          server: $(el).text().trim().toLowerCase(),
-          serverId: $(el).attr("data-server-id"),
-          sourceId: $(el).attr("data-id"),
-        });
+        dub.push({ server: $(el).text().trim().toLowerCase(), serverId: $(el).attr("data-server-id"), sourceId: $(el).attr("data-id") });
       });
-
       result = { sub, dub };
       break;
     }
 
-    case 'watch': {
+    case "watch": {
       if (!sourceId) throw new Error("sourceId required");
 
-      // Get source link from aniwatch AJAX endpoint (like aniwatch.to does)
+      // Step 1: Get embed URL from aniwatch
       const srcRes = await fetch(`${BASE}/ajax/v2/episode/sources?id=${sourceId}`, {
         headers: { ...HEADERS, "X-Requested-With": "XMLHttpRequest" },
       });
       const srcData = await srcRes.json();
-
       if (!srcData?.link) throw new Error("Source link not found");
 
-      // Return embed URL directly — no HLS extraction/proxy needed
-      // This offloads all video delivery to the embed provider (MegaCloud)
-      const embedUrl = srcData.link;
+      // Step 2: Extract HLS sources from MegaCloud
+      const extracted = await extractMegaCloud(srcData.link);
 
-      // Try to get tracks (subtitles) from the embed for translation feature
-      let tracks: unknown[] = [];
-      let intro = { start: 0, end: 0 };
-      let outro = { start: 0, end: 0 };
-
-      try {
-        const match = embedUrl.match(/\/e(?:-1)?\/(.*?)(?:\?|$)/);
-        if (match) {
-          const hash = match[1];
-          const embedBase = "megacloud.blog";
-          const embedPath = "embed-2/v3/e-1";
-          const videoUrl = `https://${embedBase}/${embedPath}/${hash}?k=1`;
-
-          const megaHeaders = {
-            "User-Agent": HEADERS["User-Agent"],
-            "X-Requested-With": "XMLHttpRequest",
-            Accept: "*/*",
-            Referer: videoUrl,
-          };
-
-          const iframeRes = await fetch(videoUrl, { headers: megaHeaders });
-          const iframeHtml = await iframeRes.text();
-
-          const nonceMatch = iframeHtml.match(/\b[a-zA-Z0-9]{48}\b/) ||
-            iframeHtml.match(/\b([a-zA-Z0-9]{16})\b.*?\b([a-zA-Z0-9]{16})\b.*?\b([a-zA-Z0-9]{16})\b/);
-
-          const nonce = nonceMatch
-            ? nonceMatch.length === 4
-              ? nonceMatch.slice(1).join("")
-              : nonceMatch[0]
-            : null;
-
-          if (nonce) {
-            const videoId = videoUrl.split("/").pop()?.split("?")[0];
-            const sourcesUrl = `https://${embedBase}/${embedPath}/getSources?id=${videoId}&_k=${nonce}`;
-            const sourcesRes = await fetch(sourcesUrl, { headers: megaHeaders });
-            const sourcesData = await sourcesRes.json();
-
-            if (sourcesData) {
-              tracks = sourcesData.tracks || [];
-              intro = sourcesData.intro || { start: 0, end: 0 };
-              outro = sourcesData.outro || { start: 0, end: 0 };
-            }
-          }
-        }
-      } catch {
-        // Tracks are optional — iframe will still work without them
-        console.log("Could not extract tracks, using iframe only");
+      if (!extracted.sources.length) {
+        throw new Error("No video sources found");
       }
 
+      // Step 3: Rewrite m3u8 URL to go through our proxy
+      const m3u8Url = extracted.sources[0].file;
+      const proxiedUrl = `${proxyBase}?url=${encodeURIComponent(m3u8Url)}`;
+
       result = {
-        embedUrl,
-        sources: [], // No HLS sources — using iframe
-        tracks,
-        intro,
-        outro,
+        sources: [{ file: proxiedUrl, type: "hls" }],
+        tracks: extracted.tracks,
+        intro: extracted.intro,
+        outro: extracted.outro,
       };
       break;
     }
 
-    case 'special': {
+    case "special": {
       const url = `${BASE}/special?page=${page || 1}`;
       const $ = await fetchPage(url);
       const results: unknown[] = [];
-      $(".flw-item").each((_: number, el: cheerio.Element) => {
-        results.push(parseAnimeCard($, el));
-      });
+      $(".flw-item").each((_: number, el: cheerio.Element) => { results.push(parseAnimeCard($, el)); });
       const hasNext = $(".pagination .page-item").last().hasClass("active") === false && $(".pagination .page-item").length > 0;
       result = { results, hasNextPage: hasNext };
       break;
     }
 
-    case 'movie': {
+    case "movie": {
       const url = (page || 1) > 1 ? `${BASE}/movie?page=${page}` : `${BASE}/movie`;
       const $ = await fetchPage(url);
       const results: unknown[] = [];
-      $(".film_list-wrap .flw-item, .flw-item").each((_: number, el: cheerio.Element) => {
-        results.push(parseAnimeCard($, el));
-      });
+      $(".film_list-wrap .flw-item, .flw-item").each((_: number, el: cheerio.Element) => { results.push(parseAnimeCard($, el)); });
       const hasNext = $(".pagination .page-item").last().hasClass("active") === false && $(".pagination .page-item").length > 0;
       result = { results, hasNextPage: hasNext };
       break;
     }
 
-    case 'genres': {
+    case "genres": {
       const $ = await fetchPage(`${BASE}/home`);
       const genres: unknown[] = [];
       $("#sidebar_subs_genre a.nav-link").each((_: number, el: cheerio.Element) => {
@@ -528,181 +614,106 @@ async function processAction(
       break;
     }
 
-    case 'genre': {
+    case "genre": {
       const url = `${BASE}/genre/${id}?page=${page || 1}`;
       const $ = await fetchPage(url);
       const results: unknown[] = [];
-      $(".flw-item").each((_: number, el: cheerio.Element) => {
-        results.push(parseAnimeCard($, el));
-      });
+      $(".flw-item").each((_: number, el: cheerio.Element) => { results.push(parseAnimeCard($, el)); });
       const hasNext = $(".pagination .page-item").last().hasClass("active") === false && $(".pagination .page-item").length > 0;
       result = { results, hasNextPage: hasNext };
       break;
     }
 
-    case 'translate-subtitle': {
-  if (!subtitleUrl) throw new Error("subtitleUrl required");
+    case "translate-subtitle": {
+      if (!subtitleUrl) throw new Error("subtitleUrl required");
+      const urlHash = simpleHash(subtitleUrl);
+      const dbCached = await getCachedTranslation(urlHash);
+      if (dbCached) { result = { vtt: dbCached }; break; }
 
-  // Check DB cache first
-  const urlHash = simpleHash(subtitleUrl);
-  const dbCached = await getCachedTranslation(urlHash);
-  if (dbCached) {
-    result = { vtt: dbCached };
-    break;
-  }
+      const subRes = await fetch(subtitleUrl);
+      if (!subRes.ok) throw new Error("Failed to fetch subtitle source");
+      const subText = await subRes.text();
 
-  const subRes = await fetch(subtitleUrl);
-  if (!subRes.ok) throw new Error("Failed to fetch subtitle source");
-  const subText = await subRes.text();
-
-  const lines = subText.split("\n");
-  const cues: { timestamp: string; text: string[] }[] = [];
-
-  let i = 0;
-  while (i < lines.length) {
-    const line = lines[i].trim();
-    if (line.includes("-->")) {
-      const timestamp = line;
-      const textLines: string[] = [];
-      i++;
-      while (i < lines.length && lines[i].trim() !== "") {
-        textLines.push(lines[i]);
-        i++;
+      const lines = subText.split("\n");
+      const cues: { timestamp: string; text: string[] }[] = [];
+      let i = 0;
+      while (i < lines.length) {
+        const line = lines[i].trim();
+        if (line.includes("-->")) {
+          const timestamp = line;
+          const textLines: string[] = [];
+          i++;
+          while (i < lines.length && lines[i].trim() !== "") { textLines.push(lines[i]); i++; }
+          cues.push({ timestamp, text: textLines });
+        } else { i++; }
       }
-      cues.push({ timestamp, text: textLines });
-    } else {
-      i++;
-    }
-  }
+      if (!cues.length) throw new Error("No subtitle cues found");
 
-  if (!cues.length) throw new Error("No subtitle cues found");
-
-  // 🔥 OPTIMIZED TRANSLATE
-  const translateBatch = async (texts: string[]): Promise<string[]> => {
-
-    // ======================
-    // 1. GOOGLE (FASTEST)
-    // ======================
-    try {
-  const joined = texts.join("\n");
-
-  const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=id&dt=t&q=${encodeURIComponent(joined)}`;
-  const res = await fetch(url);
-
-  if (res.ok) {
-    const data = await res.json();
-
-    // 🔥 FIX PARSING (INI YANG BIKIN ERROR SEBELUMNYA)
-    let translated = "";
-
-    if (Array.isArray(data?.[0])) {
-      translated = data[0].map((p: any) => p?.[0] || "").join("");
-    }
-
-    if (translated) {
-      let split = translated.split("\n");
-
-      // 🔥 HANDLE kalau Google gabung line
-      if (split.length !== texts.length) {
-        split = translated
-          .replace(/\.\s+/g, ".\n")
-          .split("\n");
-      }
-
-      if (split.length === texts.length) return split;
-
-      // 🔥 LAST FIX → paksa mapping
-      return texts.map((t, i) => split[i] || translated || t);
-    }
-  }
-} catch {}
-
-    // ======================
-    // 2. OPENROUTER (AI FAST)
-    // ======================
-    try {
-      const apiKey = Deno.env.get("OPENROUTER_API_KEY");
-      if (apiKey) {
-
-        const DELIM = "<<<SEP>>>";
-
-        const aiRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "deepseek/deepseek-chat",
-            temperature: 0,
-            max_tokens: 2000, // 🔥 dikurangi biar ringan
-            messages: [
-              {
-                role: "system",
-                content:
-                  "Translate to Indonesian. Keep EXACT structure. Return ONLY text separated by <<<SEP>>>."
-              },
-              {
-                role: "user",
-                content: texts.join(` ${DELIM} `)
-              }
-            ],
-          }),
-        });
-
-        if (aiRes.ok) {
-          const ai = await aiRes.json();
-          const raw = ai?.choices?.[0]?.message?.content || "";
-
-          let split = raw.split(DELIM).map((l: string) => l.trim()).filter(Boolean);
-
-          if (split.length !== texts.length) {
-            split = raw.split("\n").map((l: string) => l.trim()).filter(Boolean);
+      const translateBatch = async (texts: string[]): Promise<string[]> => {
+        try {
+          const joined = texts.join("\n");
+          const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=id&dt=t&q=${encodeURIComponent(joined)}`;
+          const res = await fetch(url);
+          if (res.ok) {
+            const data = await res.json();
+            let translated = "";
+            if (Array.isArray(data?.[0])) translated = data[0].map((p: any) => p?.[0] || "").join("");
+            if (translated) {
+              let split = translated.split("\n");
+              if (split.length !== texts.length) split = translated.replace(/\.\s+/g, ".\n").split("\n");
+              if (split.length === texts.length) return split;
+              return texts.map((t, i) => split[i] || translated || t);
+            }
           }
+        } catch {}
 
-          if (split.length === texts.length) return split;
-          if (split.length > texts.length) return split.slice(0, texts.length);
+        try {
+          const apiKey = Deno.env.get("OPENROUTER_API_KEY");
+          if (apiKey) {
+            const DELIM = "<<<SEP>>>";
+            const aiRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+              body: JSON.stringify({
+                model: "deepseek/deepseek-chat", temperature: 0, max_tokens: 2000,
+                messages: [
+                  { role: "system", content: "Translate to Indonesian. Keep EXACT structure. Return ONLY text separated by <<<SEP>>>." },
+                  { role: "user", content: texts.join(` ${DELIM} `) },
+                ],
+              }),
+            });
+            if (aiRes.ok) {
+              const ai = await aiRes.json();
+              const raw = ai?.choices?.[0]?.message?.content || "";
+              let split = raw.split(DELIM).map((l: string) => l.trim()).filter(Boolean);
+              if (split.length !== texts.length) split = raw.split("\n").map((l: string) => l.trim()).filter(Boolean);
+              if (split.length === texts.length) return split;
+              if (split.length > texts.length) return split.slice(0, texts.length);
+              return texts.map((t, idx) => split[idx] || t);
+            }
+          }
+        } catch {}
 
-          return texts.map((t, i) => split[i] || t);
-        }
+        return texts.map((t) => "[ID] " + t);
+      };
+
+      const translatedCues: string[] = [];
+      const BATCH_SIZE = 20;
+      for (let i = 0; i < cues.length; i += BATCH_SIZE) {
+        const batch = cues.slice(i, i + BATCH_SIZE);
+        const texts = batch.map((c) => c.text.join("\n"));
+        const translated = await translateBatch(texts);
+        batch.forEach((cue, idx) => {
+          translatedCues.push(cue.timestamp + "\n" + (translated[idx] || cue.text.join("\n")));
+        });
+        await new Promise((r) => setTimeout(r, 30));
       }
-    } catch {}
 
-    // ======================
-    // 3. SAFE FALLBACK (NO LOOP API)
-    // ======================
-    return texts.map(t => "[ID] " + t);
-  };
-
-  const translatedCues: string[] = [];
-
-  // 🔥 TURUNKAN BATCH (PENTING!)
-  const BATCH_SIZE = 20;
-
-  for (let i = 0; i < cues.length; i += BATCH_SIZE) {
-    const batch = cues.slice(i, i + BATCH_SIZE);
-    const texts = batch.map(c => c.text.join("\n"));
-
-    const translated = await translateBatch(texts);
-
-    batch.forEach((cue, idx) => {
-      translatedCues.push(cue.timestamp + "\n" + (translated[idx] || cue.text.join("\n")));
-    });
-
-    // 🔥 DELAY KECIL (ANTI LIMIT)
-    await new Promise(r => setTimeout(r, 30));
-  }
-
-  const vtt = "WEBVTT\n\n" + translatedCues.join("\n\n");
-
-  // Save to DB cache (non-blocking)
-  saveCachedTranslation(urlHash, subtitleUrl, vtt);
-
-  result = { vtt };
-  break;
-}
-
-      
+      const vtt = "WEBVTT\n\n" + translatedCues.join("\n\n");
+      saveCachedTranslation(urlHash, subtitleUrl, vtt);
+      result = { vtt };
+      break;
+    }
 
     default:
       throw new Error("Invalid action");
