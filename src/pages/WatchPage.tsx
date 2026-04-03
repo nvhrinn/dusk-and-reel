@@ -177,7 +177,6 @@ const WatchPage = () => {
   });
 
   const currentEp = episodes?.find((e) => e.epId === epId);
-  const embedUrl = stream?.embedUrl;
 
   const baseTracks = useMemo(() => {
     const subs = stream?.tracks?.filter((t) => t.kind === "captions" || t.kind === "subtitles");
