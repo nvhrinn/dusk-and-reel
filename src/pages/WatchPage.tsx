@@ -263,12 +263,13 @@ const WatchPage = () => {
           </div>
         ) : streamLoading || serversLoading ? (
           <Skeleton className="w-full aspect-video rounded-lg" />
-        ) : embedUrl ? (
+        ) : stream?.sources?.[0]?.file ? (
           <VideoPlayer
-            embedUrl={embedUrl}
+            src={stream.sources[0].file}
             tracks={effectiveTracks}
-            translatedVtt={translatedVtt?.vtt}
             selectedTrack={selectedTrack}
+            intro={stream.intro}
+            outro={stream.outro}
             onError={handlePlayerError}
           />
         ) : (
