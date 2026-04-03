@@ -263,9 +263,9 @@ const WatchPage = () => {
           </div>
         ) : streamLoading || serversLoading ? (
           <Skeleton className="w-full aspect-video rounded-lg" />
-        ) : stream?.sources?.[0]?.file ? (
+        ) : (stream?.sources?.[0]?.file || stream?.sources?.[0]?.url) ? (
           <VideoPlayer
-            src={stream.sources[0].file}
+            src={(stream!.sources[0].file || stream!.sources[0].url)!}
             tracks={effectiveTracks}
             selectedTrack={selectedTrack}
             intro={stream.intro}

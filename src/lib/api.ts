@@ -55,7 +55,8 @@ export interface Server {
 }
 
 export interface StreamSource {
-  url: string;
+  file?: string;
+  url?: string;
   type: string;
 }
 
