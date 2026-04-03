@@ -177,7 +177,6 @@ const WatchPage = () => {
   });
 
   const currentEp = episodes?.find((e) => e.epId === epId);
-  const embedUrl = stream?.embedUrl;
 
   const baseTracks = useMemo(() => {
     const subs = stream?.tracks?.filter((t) => t.kind === "captions" || t.kind === "subtitles");
@@ -263,12 +262,13 @@ const WatchPage = () => {
           </div>
         ) : streamLoading || serversLoading ? (
           <Skeleton className="w-full aspect-video rounded-lg" />
-        ) : embedUrl ? (
+        ) : (stream?.sources?.[0]?.file || stream?.sources?.[0]?.url) ? (
           <VideoPlayer
-            embedUrl={embedUrl}
+            src={(stream!.sources[0].file || stream!.sources[0].url)!}
             tracks={effectiveTracks}
-            translatedVtt={translatedVtt?.vtt}
             selectedTrack={selectedTrack}
+            intro={stream.intro}
+            outro={stream.outro}
             onError={handlePlayerError}
           />
         ) : (
