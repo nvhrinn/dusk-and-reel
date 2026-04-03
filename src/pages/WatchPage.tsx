@@ -3,11 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { aniwatchApi } from "@/lib/api";
 import VideoPlayer from "@/components/VideoPlayer";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Monitor, Volume2, Languages, Settings, ChevronDown, Ticket } from "lucide-react";
+import { ArrowLeft, Monitor, Volume2, Languages, ChevronDown, Ticket } from "lucide-react";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import AdRewardDialog from "@/components/AdRewardDialog";
-
 
 const Dropdown = ({
   label,
@@ -86,9 +85,6 @@ const WatchPage = () => {
   const [cachedSubTracks, setCachedSubTracks] = useState<{ file: string; label: string; kind: string }[]>([]);
   const [episodeUnlocked, setEpisodeUnlocked] = useState(false);
   const [showAdDialog, setShowAdDialog] = useState(false);
-
-  const [qualities, setQualities] = useState<{ height: number; index: number }[]>([]);
-  const [selectedQuality, setSelectedQuality] = useState<number>(-1);
   const [selectedTrack, setSelectedTrack] = useState<number>(0);
 
   useEffect(() => {
@@ -113,12 +109,11 @@ const WatchPage = () => {
     }
   };
 
-
   const { data: episodes } = useQuery({
     queryKey: ["episodes", id],
     queryFn: () => aniwatchApi.episodes(id!),
     enabled: !!id,
-    staleTime: 30 * 60_000,   // 30 min — episodes rarely change
+    staleTime: 30 * 60_000,
     gcTime: 60 * 60_000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
@@ -128,7 +123,7 @@ const WatchPage = () => {
     queryKey: ["servers", epId],
     queryFn: () => aniwatchApi.servers(epId!),
     enabled: !!epId,
-    staleTime: 5 * 60_000,    // 5 min
+    staleTime: 5 * 60_000,
     gcTime: 15 * 60_000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
@@ -175,14 +170,14 @@ const WatchPage = () => {
     queryFn: () => aniwatchApi.watch(selectedSourceId!),
     enabled: !!selectedSourceId,
     retry: 1,
-    staleTime: 10 * 60_000,  // 10 min — stream URLs stable
+    staleTime: 15 * 60_000,
     gcTime: 30 * 60_000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
   });
 
   const currentEp = episodes?.find((e) => e.epId === epId);
-  const streamUrl = stream?.sources?.[0]?.url;
+  const embedUrl = stream?.embedUrl;
 
   const baseTracks = useMemo(() => {
     const subs = stream?.tracks?.filter((t) => t.kind === "captions" || t.kind === "subtitles");
@@ -221,15 +216,9 @@ const WatchPage = () => {
   }, [baseTracks, translatedVtt]);
 
   const handlePlayerError = useCallback(() => {}, []);
-  const handleQualitiesChange = useCallback((q: { height: number; index: number }[]) => {
-    setQualities(q);
-    setSelectedQuality(-1);
-  }, []);
 
-  // Compute subtitle options for dropdown
   const subtitleOptions = useMemo(() => {
     const subs = effectiveTracks.filter((t) => t.kind === "captions" || t.kind === "subtitles");
-    // Deduplicate by label
     const seen = new Set<string>();
     const unique = subs.filter((t) => {
       const key = t.label.toLowerCase().trim();
@@ -249,20 +238,8 @@ const WatchPage = () => {
     return sorted.map((t, i) => ({ label: t.label, value: String(i) }));
   }, [effectiveTracks]);
 
-  const qualityOptions = useMemo(() => {
-    const opts = [{ label: "Auto", value: "-1" }];
-    qualities
-      .sort((a, b) => b.height - a.height)
-      .forEach((q) => opts.push({ label: `${q.height}p`, value: String(q.index) }));
-    return opts;
-  }, [qualities]);
-
   const hasSub = megacloudServers && megacloudServers.sub.length > 0;
   const hasDub = megacloudServers && megacloudServers.dub.length > 0;
-
-  const currentQualityLabel = selectedQuality === -1
-    ? "Auto"
-    : `${qualities.find((q) => q.index === selectedQuality)?.height || "?"}p`;
   const currentSubLabel = subtitleOptions[selectedTrack]?.label || "—";
 
   return (
@@ -275,7 +252,6 @@ const WatchPage = () => {
           <ArrowLeft className="w-4 h-4" /> Back to details
         </button>
 
-        {/* Coupon Gate */}
         {!episodeUnlocked ? (
           <div className="w-full aspect-video rounded-lg bg-secondary flex flex-col items-center justify-center gap-4">
             <Ticket className="w-10 h-10 text-muted-foreground" />
@@ -287,21 +263,14 @@ const WatchPage = () => {
           </div>
         ) : streamLoading || serversLoading ? (
           <Skeleton className="w-full aspect-video rounded-lg" />
-        ) : streamUrl ? (
+        ) : embedUrl ? (
           <VideoPlayer
-            src={streamUrl}
+            embedUrl={embedUrl}
             tracks={effectiveTracks}
-            intro={stream?.intro}
-            outro={stream?.outro}
-            onError={handlePlayerError}
+            translatedVtt={translatedVtt?.vtt}
             selectedTrack={selectedTrack}
-            selectedQuality={selectedQuality}
-            onQualitiesChange={handleQualitiesChange}
+            onError={handlePlayerError}
           />
-        ) : stream?.embedUrl ? (
-          <div className="w-full aspect-video rounded-lg overflow-hidden">
-            <iframe src={stream.embedUrl} className="w-full h-full" allowFullScreen allow="autoplay; encrypted-media" />
-          </div>
         ) : (
           <div className="w-full aspect-video rounded-lg bg-secondary flex items-center justify-center">
             <p className="text-muted-foreground">Select a server to start watching</p>
@@ -309,24 +278,20 @@ const WatchPage = () => {
         )}
 
         <AdRewardDialog
-  open={showAdDialog}
-  onClose={() => setShowAdDialog(false)}
-  onReward={() => {
-  const newCoupons = coupons + 1;
+          open={showAdDialog}
+          onClose={() => setShowAdDialog(false)}
+          onReward={() => {
+            const newCoupons = coupons + 1;
+            setCouponsState(newCoupons);
+            saveCoupons(newCoupons);
+            if (epId) {
+              unlockEpisode(epId);
+              setEpisodeUnlocked(true);
+            }
+            setShowAdDialog(false);
+          }}
+        />
 
-  setCouponsState(newCoupons);
-  saveCoupons(newCoupons);
-
-  if (epId) {
-    unlockEpisode(epId);
-    setEpisodeUnlocked(true);
-  }
-
-  setShowAdDialog(false);
-}}
-/>
-
-        {/* Controls below player */}
         <div className="mt-4 space-y-4">
           {currentEp && (
             <h2 className="font-display font-bold text-lg">
@@ -336,7 +301,6 @@ const WatchPage = () => {
           )}
 
           <div className="flex flex-wrap items-center gap-2">
-            {/* Audio toggle */}
             {megacloudServers && (hasSub || hasDub) && (
               <div className="flex rounded-xl overflow-hidden border border-border">
                 {hasSub && (
@@ -366,26 +330,10 @@ const WatchPage = () => {
               </div>
             )}
 
-            {/* Server badge */}
             <span className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-card border border-primary/40 text-muted-foreground">
               <Monitor className="w-3.5 h-3.5" /> MegaCloud
             </span>
-            <span className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-card border border-border text-muted-foreground">
-              <Monitor className="w-3.5 h-3.5" /> RapidCloud
-            </span>
 
-            {/* Quality dropdown */}
-            {qualityOptions.length > 1 && (
-              <Dropdown
-                label="Quality"
-                icon={Settings}
-                value={currentQualityLabel}
-                options={qualityOptions}
-                onChange={(v) => setSelectedQuality(Number(v))}
-              />
-            )}
-
-            {/* Subtitle dropdown */}
             {subtitleOptions.length > 0 && (
               <Dropdown
                 label="Subtitle"
@@ -398,7 +346,6 @@ const WatchPage = () => {
           </div>
         </div>
 
-        {/* Episode list */}
         {episodes && episodes.length > 0 && (
           <section className="mt-8 pb-8">
             <h3 className="font-display font-bold text-lg mb-3">Episodes</h3>
@@ -418,17 +365,14 @@ const WatchPage = () => {
               ))}
             </div>
             <div className="mt-5 border-t pt-4 text-sm text-muted-foreground flex items-center justify-between">
-      <span>
-        If you are having problems playing videos or subtitles
-      </span>
-
-      <button
-        onClick={() => navigate("/report")}
-        className="text-primary font-medium hover:underline"
-      >
-        Report a problem
-      </button>
-    </div>
+              <span>If you are having problems playing videos or subtitles</span>
+              <button
+                onClick={() => navigate("/report")}
+                className="text-primary font-medium hover:underline"
+              >
+                Report a problem
+              </button>
+            </div>
           </section>
         )}
       </div>

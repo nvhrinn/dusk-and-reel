@@ -1,7 +1,5 @@
-import { useEffect, useRef, useState, useCallback, useMemo } from "react";
-import Hls from "hls.js";
-import { SkipForward, AlertTriangle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { AlertTriangle } from "lucide-react";
 
 interface Track {
   file: string;
@@ -10,42 +8,31 @@ interface Track {
 }
 
 interface VideoPlayerProps {
-  src: string;
+  embedUrl: string;
   tracks?: Track[];
-  intro?: { start: number; end: number };
-  outro?: { start: number; end: number };
-  onError?: () => void;
+  translatedVtt?: string | null;
   selectedTrack: number;
-  selectedQuality: number;
-  onQualitiesChange?: (qualities: { height: number; index: number }[]) => void;
-  onQualitySet?: (index: number) => void;
+  onError?: () => void;
 }
 
-const VideoPlayer = ({
-  src, tracks, intro, outro, onError,
-  selectedTrack, selectedQuality,
-  onQualitiesChange, onQualitySet,
-}: VideoPlayerProps) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const hlsRef = useRef<Hls | null>(null);
+const VideoPlayer = ({ embedUrl, tracks, translatedVtt, selectedTrack, onError }: VideoPlayerProps) => {
   const [error, setError] = useState(false);
-  const [showSkipIntro, setShowSkipIntro] = useState(false);
-  const [showSkipOutro, setShowSkipOutro] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [currentSubtitle, setCurrentSubtitle] = useState("");
 
-  const hasIntro = intro && intro.end > intro.start && intro.end > 0;
-  const hasOutro = outro && outro.end > outro.start && outro.end > 0;
-
-  const subtitleTracks = useMemo(() => {
-    const subs = tracks?.filter((t) => t.kind === "captions" || t.kind === "subtitles") || [];
-    // Deduplicate by label — keep first occurrence only
+  // Parse VTT for overlay subtitles
+  const subtitleCues = useMemo(() => {
+    const subtitleTracks = tracks?.filter((t) => t.kind === "captions" || t.kind === "subtitles") || [];
+    // Deduplicate and sort
     const seen = new Set<string>();
-    const unique = subs.filter((t) => {
+    const unique = subtitleTracks.filter((t) => {
       const key = t.label.toLowerCase().trim();
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
     });
-    return unique.sort((a, b) => {
+    const sorted = unique.sort((a, b) => {
       const priority = (label: string) => {
         const l = label.toLowerCase();
         if (l.includes("indonesian") || l.includes("indonesia") || l.includes("ind")) return 0;
@@ -54,76 +41,11 @@ const VideoPlayer = ({
       };
       return priority(a.label) - priority(b.label);
     });
+    return sorted;
   }, [tracks]);
 
-  const proxyBase = useMemo(() => {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    return `${supabaseUrl}/functions/v1/aniwatch?url=`;
-  }, []);
-
-  const handleTimeUpdate = useCallback(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    const t = video.currentTime;
-    setShowSkipIntro(!!hasIntro && t >= intro!.start && t < intro!.end);
-    setShowSkipOutro(!!hasOutro && t >= outro!.start && t < outro!.end);
-  }, [hasIntro, hasOutro, intro, outro]);
-
-  // HLS setup
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !src) return;
-    setError(false);
-
-    if (Hls.isSupported()) {
-      class ProxyLoader extends Hls.DefaultConfig.loader {
-        load(context: any, config: any, callbacks: any) {
-          context.url = `${proxyBase}${encodeURIComponent(context.url)}`;
-          super.load(context, config, callbacks);
-        }
-      }
-      const hls = new Hls({ maxBufferLength: 30, maxMaxBufferLength: 60, loader: ProxyLoader });
-      hlsRef.current = hls;
-      hls.loadSource(src);
-      hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        const levels = hls.levels.map((level, index) => ({ height: level.height, index }));
-        onQualitiesChange?.(levels);
-        video.play().catch(() => {});
-      });
-      hls.on(Hls.Events.ERROR, (_event, data) => {
-        if (data.fatal) {
-          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) hls.startLoad();
-          else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) hls.recoverMediaError();
-          else { setError(true); onError?.(); }
-        }
-      });
-    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      video.src = src;
-      video.addEventListener("loadedmetadata", () => video.play().catch(() => {}));
-      video.addEventListener("error", () => { setError(true); onError?.(); });
-    }
-    return () => { hlsRef.current?.destroy(); hlsRef.current = null; };
-  }, [src, onError, proxyBase, onQualitiesChange]);
-
-  // Apply quality change
-  useEffect(() => {
-    const hls = hlsRef.current;
-    if (hls) hls.currentLevel = selectedQuality;
-  }, [selectedQuality]);
-
-  // Apply subtitle track change
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    const textTracks = video.textTracks;
-    for (let i = 0; i < textTracks.length; i++) {
-      textTracks[i].mode = i === selectedTrack ? "showing" : "hidden";
-    }
-  }, [selectedTrack, subtitleTracks]);
-
-  const skipIntro = () => { if (videoRef.current && intro) videoRef.current.currentTime = intro.end; };
-  const skipOutro = () => { if (videoRef.current && outro) videoRef.current.currentTime = outro.end; };
+  // We use iframe — the embed provider handles video playback entirely
+  // Subtitle overlay is shown on top if translated subtitle is available
 
   if (error) {
     return (
@@ -135,22 +57,18 @@ const VideoPlayer = ({
   }
 
   return (
-    <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden group">
-      <video ref={videoRef} controls className="w-full h-full" crossOrigin="anonymous" onTimeUpdate={handleTimeUpdate}>
-        {subtitleTracks.map((track, i) => (
-          <track key={`${track.label}-${i}`} src={track.file} label={track.label} kind="subtitles" default={i === selectedTrack} />
-        ))}
-      </video>
-      {showSkipIntro && (
-        <Button size="sm" className="absolute bottom-20 right-4 z-10 glow-sm font-display animate-fade-in" onClick={skipIntro}>
-          <SkipForward className="w-4 h-4 mr-1" /> Skip Intro
-        </Button>
-      )}
-      {showSkipOutro && (
-        <Button size="sm" className="absolute bottom-20 right-4 z-10 glow-sm font-display animate-fade-in" onClick={skipOutro}>
-          <SkipForward className="w-4 h-4 mr-1" /> Skip Outro
-        </Button>
-      )}
+    <div ref={containerRef} className="relative w-full aspect-video bg-black rounded-lg overflow-hidden">
+      <iframe
+        src={embedUrl}
+        className="w-full h-full border-0"
+        allowFullScreen
+        allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+        referrerPolicy="no-referrer"
+        onError={() => {
+          setError(true);
+          onError?.();
+        }}
+      />
     </div>
   );
 };
