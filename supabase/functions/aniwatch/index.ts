@@ -101,8 +101,8 @@ function parseAnimeCard($: cheerio.CheerioAPI, el: cheerio.Element) {
 // ─── Persistent subtitle cache using Supabase DB ───
 async function getCachedTranslation(subtitleUrlHash: string): Promise<string | null> {
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const supabaseUrl = Deno.env.get("SUPABASE_TRANSLATE_URL");
+    const supabaseKey = Deno.env.get("SUPABASE_TRANSLATE_SERVICE_ROLE_KEY");
     if (!supabaseUrl || !supabaseKey) return null;
 
     const res = await fetch(
@@ -117,8 +117,8 @@ async function getCachedTranslation(subtitleUrlHash: string): Promise<string | n
 
 async function saveCachedTranslation(subtitleUrlHash: string, originalUrl: string, vtt: string): Promise<void> {
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const supabaseUrl = Deno.env.get("SUPABASE_TRANSLATE_URL");
+    const supabaseKey = Deno.env.get("SUPABASE_TRANSLATE_SERVICE_ROLE_KEY");
     if (!supabaseUrl || !supabaseKey) return;
 
     await fetch(`${supabaseUrl}/rest/v1/subtitle_cache`, {
@@ -541,130 +541,168 @@ async function processAction(
     }
 
     case 'translate-subtitle': {
-      if (!subtitleUrl) throw new Error("subtitleUrl required");
+  if (!subtitleUrl) throw new Error("subtitleUrl required");
 
-      const urlHash = simpleHash(subtitleUrl);
-      const dbCached = await getCachedTranslation(urlHash);
-      if (dbCached) {
-        result = { vtt: dbCached };
-        break;
+  // Check DB cache first
+  const urlHash = simpleHash(subtitleUrl);
+  const dbCached = await getCachedTranslation(urlHash);
+  if (dbCached) {
+    result = { vtt: dbCached };
+    break;
+  }
+
+  const subRes = await fetch(subtitleUrl);
+  if (!subRes.ok) throw new Error("Failed to fetch subtitle source");
+  const subText = await subRes.text();
+
+  const lines = subText.split("\n");
+  const cues: { timestamp: string; text: string[] }[] = [];
+
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i].trim();
+    if (line.includes("-->")) {
+      const timestamp = line;
+      const textLines: string[] = [];
+      i++;
+      while (i < lines.length && lines[i].trim() !== "") {
+        textLines.push(lines[i]);
+        i++;
+      }
+      cues.push({ timestamp, text: textLines });
+    } else {
+      i++;
+    }
+  }
+
+  if (!cues.length) throw new Error("No subtitle cues found");
+
+  // 🔥 OPTIMIZED TRANSLATE
+  const translateBatch = async (texts: string[]): Promise<string[]> => {
+
+    // ======================
+    // 1. GOOGLE (FASTEST)
+    // ======================
+    try {
+  const joined = texts.join("\n");
+
+  const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=id&dt=t&q=${encodeURIComponent(joined)}`;
+  const res = await fetch(url);
+
+  if (res.ok) {
+    const data = await res.json();
+
+    // 🔥 FIX PARSING (INI YANG BIKIN ERROR SEBELUMNYA)
+    let translated = "";
+
+    if (Array.isArray(data?.[0])) {
+      translated = data[0].map((p: any) => p?.[0] || "").join("");
+    }
+
+    if (translated) {
+      let split = translated.split("\n");
+
+      // 🔥 HANDLE kalau Google gabung line
+      if (split.length !== texts.length) {
+        split = translated
+          .replace(/\.\s+/g, ".\n")
+          .split("\n");
       }
 
-      const subRes = await fetch(subtitleUrl);
-      if (!subRes.ok) throw new Error("Failed to fetch subtitle source");
-      const subText = await subRes.text();
+      if (split.length === texts.length) return split;
 
-      const lines = subText.split("\n");
-      const cues: { timestamp: string; text: string[] }[] = [];
-      let i = 0;
-      while (i < lines.length) {
-        const line = lines[i].trim();
-        if (line.includes("-->")) {
-          const timestamp = line;
-          const textLines: string[] = [];
-          i++;
-          while (i < lines.length && lines[i].trim() !== "") {
-            textLines.push(lines[i]);
-            i++;
+      // 🔥 LAST FIX → paksa mapping
+      return texts.map((t, i) => split[i] || translated || t);
+    }
+  }
+} catch {}
+
+    // ======================
+    // 2. OPENROUTER (AI FAST)
+    // ======================
+    try {
+      const apiKey = Deno.env.get("OPENROUTER_API_KEY");
+      if (apiKey) {
+
+        const DELIM = "<<<SEP>>>";
+
+        const aiRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "deepseek/deepseek-chat",
+            temperature: 0,
+            max_tokens: 2000, // 🔥 dikurangi biar ringan
+            messages: [
+              {
+                role: "system",
+                content:
+                  "Translate to Indonesian. Keep EXACT structure. Return ONLY text separated by <<<SEP>>>."
+              },
+              {
+                role: "user",
+                content: texts.join(` ${DELIM} `)
+              }
+            ],
+          }),
+        });
+
+        if (aiRes.ok) {
+          const ai = await aiRes.json();
+          const raw = ai?.choices?.[0]?.message?.content || "";
+
+          let split = raw.split(DELIM).map((l: string) => l.trim()).filter(Boolean);
+
+          if (split.length !== texts.length) {
+            split = raw.split("\n").map((l: string) => l.trim()).filter(Boolean);
           }
-          cues.push({ timestamp, text: textLines });
-        } else {
-          i++;
+
+          if (split.length === texts.length) return split;
+          if (split.length > texts.length) return split.slice(0, texts.length);
+
+          return texts.map((t, i) => split[i] || t);
         }
       }
+    } catch {}
 
-      if (!cues.length) throw new Error("No subtitle cues found");
+    // ======================
+    // 3. SAFE FALLBACK (NO LOOP API)
+    // ======================
+    return texts.map(t => "[ID] " + t);
+  };
 
-      const translateBatch = async (texts: string[]): Promise<string[]> => {
-        const joined = texts.join("\n");
+  const translatedCues: string[] = [];
 
-        try {
-          const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=id&dt=t&q=${encodeURIComponent(joined)}`;
-          const res = await fetch(url);
-          if (res.ok) {
-            const data = await res.json();
-            const translated = Array.isArray(data?.[0])
-              ? data[0].map((p: any) => p?.[0] ?? "").join("")
-              : "";
-            const split = translated.split("\n");
-            if (split.length === texts.length) return split;
-          }
-        } catch { /* fallback */ }
+  // 🔥 TURUNKAN BATCH (PENTING!)
+  const BATCH_SIZE = 20;
 
-        try {
-          const apiKey = Deno.env.get("OPENROUTER_API_KEY");
-          if (apiKey) {
-            const DELIM = "<<<SEP>>>";
-            const aiRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${apiKey}`,
-                "Content-Type": "application/json",
-                "X-Title": "subtitle-translator"
-              },
-              body: JSON.stringify({
-                model: "deepseek/deepseek-chat",
-                temperature: 0,
-                max_tokens: 4000,
-                messages: [
-                  {
-                    role: "system",
-                    content: "Translate to Indonesian. Keep EXACT structure. Do not merge or split lines. Return ONLY translation separated by <<<SEP>>>."
-                  },
-                  { role: "user", content: texts.join(` ${DELIM} `) }
-                ],
-              }),
-            });
+  for (let i = 0; i < cues.length; i += BATCH_SIZE) {
+    const batch = cues.slice(i, i + BATCH_SIZE);
+    const texts = batch.map(c => c.text.join("\n"));
 
-            if (aiRes.ok) {
-              const ai = await aiRes.json();
-              const raw = ai?.choices?.[0]?.message?.content || "";
-              let split = raw.split(DELIM).map((l: string) => l.trim()).filter(Boolean);
-              if (split.length !== texts.length) {
-                split = raw.split("\n").map((l: string) => l.trim()).filter(Boolean);
-              }
-              if (split.length === texts.length) return split;
-              if (split.length > texts.length) return split.slice(0, texts.length);
-              return texts.map((t, i) => split[i] || t);
-            }
-          }
-        } catch { /* fallback */ }
+    const translated = await translateBatch(texts);
 
-        try {
-          const results: string[] = [];
-          for (const text of texts) {
-            const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|id`;
-            const res = await fetch(url);
-            if (res.ok) {
-              const data = await res.json();
-              results.push(data?.responseData?.translatedText || text);
-            } else {
-              results.push(text);
-            }
-          }
-          return results;
-        } catch { /* return original */ }
+    batch.forEach((cue, idx) => {
+      translatedCues.push(cue.timestamp + "\n" + (translated[idx] || cue.text.join("\n")));
+    });
 
-        return texts;
-      };
+    // 🔥 DELAY KECIL (ANTI LIMIT)
+    await new Promise(r => setTimeout(r, 30));
+  }
 
-      const translatedCues: string[] = [];
-      const BATCH_SIZE = 30;
+  const vtt = "WEBVTT\n\n" + translatedCues.join("\n\n");
 
-      for (let i = 0; i < cues.length; i += BATCH_SIZE) {
-        const batch = cues.slice(i, i + BATCH_SIZE);
-        const texts = batch.map(c => c.text.join("\n"));
-        const translated = await translateBatch(texts);
-        batch.forEach((cue, idx) => {
-          translatedCues.push(cue.timestamp + "\n" + translated[idx]);
-        });
-      }
+  // Save to DB cache (non-blocking)
+  saveCachedTranslation(urlHash, subtitleUrl, vtt);
 
-      const vtt = "WEBVTT\n\n" + translatedCues.join("\n\n");
-      saveCachedTranslation(urlHash, subtitleUrl, vtt);
-      result = { vtt };
-      break;
-    }
+  result = { vtt };
+  break;
+}
+
+      
 
     default:
       throw new Error("Invalid action");
