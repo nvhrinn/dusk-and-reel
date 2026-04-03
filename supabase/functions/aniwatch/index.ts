@@ -17,14 +17,14 @@ const CACHE_TTL: Record<string, number> = {
   home: 5 * 60_000,
   search: 3 * 60_000,
   info: 10 * 60_000,
-  episodes: 10 * 60_000,
-  servers: 2 * 60_000,
-  watch: 10 * 60_000,      // ← increased: stream URLs are stable
+  episodes: 30 * 60_000,
+  servers: 5 * 60_000,
+  watch: 15 * 60_000,
   special: 5 * 60_000,
   movie: 5 * 60_000,
   genres: 30 * 60_000,
   genre: 5 * 60_000,
-  'translate-subtitle': 24 * 60 * 60_000, // 24 hours — translations are permanent
+  'translate-subtitle': 24 * 60 * 60_000,
 };
 const MAX_CACHE_SIZE = 1000;
 
@@ -32,7 +32,6 @@ function getCached(key: string): string | null {
   const entry = responseCache.get(key);
   if (!entry) return null;
   if (Date.now() > entry.expiry) { responseCache.delete(key); return null; }
-  // Move to end (LRU)
   responseCache.delete(key);
   responseCache.set(key, entry);
   return entry.data;
@@ -49,7 +48,7 @@ function setCache(key: string, data: string, ttl: number) {
 // ─── Rate limiting per IP ───
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT_WINDOW = 60_000;
-const RATE_LIMIT_MAX = 30; // reduced: 30 req/min per IP
+const RATE_LIMIT_MAX = 30;
 
 function isRateLimited(ip: string): boolean {
   const now = Date.now();
@@ -135,7 +134,6 @@ async function saveCachedTranslation(subtitleUrlHash: string, originalUrl: strin
   } catch { /* silent */ }
 }
 
-// Simple hash for cache key
 function simpleHash(str: string): string {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -162,52 +160,17 @@ Deno.serve(async (req) => {
     });
   }
 
-  // GET = HLS proxy mode
-  if (req.method === 'GET') {
-    try {
-      const reqUrl = new URL(req.url);
-      const targetUrl = reqUrl.searchParams.get('url');
-      if (!targetUrl) {
-        return new Response('Missing url param', { status: 400, headers: corsHeaders });
-      }
-
-      const proxyRes = await fetch(targetUrl, {
-        headers: {
-          'User-Agent': HEADERS['User-Agent'],
-          'Referer': 'https://megacloud.blog/',
-          'Origin': 'https://megacloud.blog',
-        },
-      });
-
-      const contentType = proxyRes.headers.get('content-type') || 'application/octet-stream';
-
-      if (contentType.includes('mpegurl') || targetUrl.endsWith('.m3u8')) {
-        let text = await proxyRes.text();
-        const baseUrl = targetUrl.substring(0, targetUrl.lastIndexOf('/') + 1);
-        text = text.replace(/^(?!#)(?!https?:\/\/)(.+)$/gm, (match) => {
-          return baseUrl + match.trim();
-        });
-        return new Response(text, {
-          status: proxyRes.status,
-          headers: { ...corsHeaders, 'Content-Type': contentType, 'Cache-Control': 'public, max-age=60' },
-        });
-      }
-
-      const body = await proxyRes.arrayBuffer();
-      return new Response(body, {
-        status: proxyRes.status,
-        headers: { ...corsHeaders, 'Content-Type': contentType, 'Cache-Control': 'public, max-age=600' },
-      });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Proxy error';
-      return new Response(msg, { status: 502, headers: corsHeaders });
-    }
+  // No more GET HLS proxy — all requests are POST
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   try {
     const { action, query, page, id, episodeId, sourceId, subtitleUrl } = await req.json();
 
-    // Check in-memory cache
     const cacheKey = JSON.stringify({ action, query, page, id, episodeId, sourceId, subtitleUrl });
     const cached = getCached(cacheKey);
     if (cached) {
@@ -216,7 +179,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // In-flight deduplication: if the same request is already being processed, wait for it
     const existingFlight = inFlightRequests.get(cacheKey);
     if (existingFlight) {
       const flightResult = await existingFlight;
@@ -225,7 +187,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Create a promise for this request
     const processPromise = processAction(action, { query, page, id, episodeId, sourceId, subtitleUrl });
     inFlightRequests.set(cacheKey, processPromise);
 
@@ -458,7 +419,7 @@ async function processAction(
     case 'watch': {
       if (!sourceId) throw new Error("sourceId required");
 
-      // Step 1: Get source link from aniwatch (like their AJAX endpoint)
+      // Get source link from aniwatch AJAX endpoint (like aniwatch.to does)
       const srcRes = await fetch(`${BASE}/ajax/v2/episode/sources?id=${sourceId}`, {
         headers: { ...HEADERS, "X-Requested-With": "XMLHttpRequest" },
       });
@@ -466,148 +427,67 @@ async function processAction(
 
       if (!srcData?.link) throw new Error("Source link not found");
 
-      // Step 2: Extract hash from MegaCloud embed URL
-      const match = srcData.link.match(/\/e(?:-1)?\/(.*?)(?:\?|$)/);
-      if (!match) {
-        result = {
-          sources: [],
-          embedUrl: srcData.link,
-          tracks: [],
-          intro: { start: 0, end: 0 },
-          outro: { start: 0, end: 0 },
-        };
-        break;
-      }
+      // Return embed URL directly — no HLS extraction/proxy needed
+      // This offloads all video delivery to the embed provider (MegaCloud)
+      const embedUrl = srcData.link;
 
-      const hash = match[1];
-      const embedBase = "megacloud.blog";
-      const embedPath = "embed-2/v3/e-1";
-      const videoUrl = `https://${embedBase}/${embedPath}/${hash}?k=1`;
+      // Try to get tracks (subtitles) from the embed for translation feature
+      let tracks: unknown[] = [];
+      let intro = { start: 0, end: 0 };
+      let outro = { start: 0, end: 0 };
 
-      const megaHeaders = {
-        "User-Agent": HEADERS["User-Agent"],
-        "X-Requested-With": "XMLHttpRequest",
-        Accept: "*/*",
-        Referer: videoUrl,
-      };
+      try {
+        const match = embedUrl.match(/\/e(?:-1)?\/(.*?)(?:\?|$)/);
+        if (match) {
+          const hash = match[1];
+          const embedBase = "megacloud.blog";
+          const embedPath = "embed-2/v3/e-1";
+          const videoUrl = `https://${embedBase}/${embedPath}/${hash}?k=1`;
 
-      // Step 3: Get the embed page to extract nonce
-      const iframeRes = await fetch(videoUrl, { headers: megaHeaders });
-      const iframeHtml = await iframeRes.text();
+          const megaHeaders = {
+            "User-Agent": HEADERS["User-Agent"],
+            "X-Requested-With": "XMLHttpRequest",
+            Accept: "*/*",
+            Referer: videoUrl,
+          };
 
-      const nonceMatch = iframeHtml.match(/\b[a-zA-Z0-9]{48}\b/) ||
-        iframeHtml.match(/\b([a-zA-Z0-9]{16})\b.*?\b([a-zA-Z0-9]{16})\b.*?\b([a-zA-Z0-9]{16})\b/);
+          const iframeRes = await fetch(videoUrl, { headers: megaHeaders });
+          const iframeHtml = await iframeRes.text();
 
-      const nonce = nonceMatch
-        ? nonceMatch.length === 4
-          ? nonceMatch.slice(1).join("")
-          : nonceMatch[0]
-        : null;
+          const nonceMatch = iframeHtml.match(/\b[a-zA-Z0-9]{48}\b/) ||
+            iframeHtml.match(/\b([a-zA-Z0-9]{16})\b.*?\b([a-zA-Z0-9]{16})\b.*?\b([a-zA-Z0-9]{16})\b/);
 
-      if (!nonce) throw new Error("Nonce not found");
+          const nonce = nonceMatch
+            ? nonceMatch.length === 4
+              ? nonceMatch.slice(1).join("")
+              : nonceMatch[0]
+            : null;
 
-      const videoId = videoUrl.split("/").pop()?.split("?")[0];
+          if (nonce) {
+            const videoId = videoUrl.split("/").pop()?.split("?")[0];
+            const sourcesUrl = `https://${embedBase}/${embedPath}/getSources?id=${videoId}&_k=${nonce}`;
+            const sourcesRes = await fetch(sourcesUrl, { headers: megaHeaders });
+            const sourcesData = await sourcesRes.json();
 
-      // Step 4: Get sources
-      const sourcesUrl = `https://${embedBase}/${embedPath}/getSources?id=${videoId}&_k=${nonce}`;
-      const sourcesRes = await fetch(sourcesUrl, { headers: megaHeaders });
-      const sourcesData = await sourcesRes.json();
-
-      if (!sourcesData) throw new Error("Invalid video id");
-
-      if (!sourcesData.encrypted && Array.isArray(sourcesData.sources)) {
-        result = {
-          sources: sourcesData.sources.map((s: { file: string; type: string }) => ({ url: s.file, type: s.type })),
-          tracks: sourcesData.tracks || [],
-          intro: sourcesData.intro || { start: 0, end: 0 },
-          outro: sourcesData.outro || { start: 0, end: 0 },
-        };
-      } else {
-        // Handle encrypted sources
-        const scriptUrl = `https://megacloud.blog/js/player/a/v3/pro/embed-1.min.js?v=${Date.now()}`;
-        const scriptRes = await fetch(scriptUrl);
-        const scriptText = await scriptRes.text();
-
-        const varRegex = /case\s*0x[0-9a-f]+:(?![^;]*partKey)\s*\w+\s*=\s*(\w+)\s*,\s*\w+\s*=\s*(\w+);/g;
-        const varMatches = scriptText.matchAll(varRegex);
-
-        const matchKey = (value: string, script: string) => {
-          const regex = new RegExp(`,${value}=((?:0x)?([0-9a-fA-F]+))`);
-          const m = script.match(regex);
-          if (!m) throw new Error("Key match failed");
-          return m[1].replace(/^0x/, "");
-        };
-
-        const vars = Array.from(varMatches, (m) => {
-          const k1 = matchKey(m[1], scriptText);
-          const k2 = matchKey(m[2], scriptText);
-          return [parseInt(k1, 16), parseInt(k2, 16)];
-        });
-
-        if (!vars.length) throw new Error("Decrypt key not found");
-
-        const sourceStr = sourcesData.sources;
-        let secret = "";
-        const encArr = sourceStr.split("");
-        let currentIndex = 0;
-
-        for (const index of vars) {
-          const start = index[0] + currentIndex;
-          const end = start + index[1];
-          for (let i = start; i < end; i++) {
-            secret += sourceStr[i];
-            encArr[i] = "";
+            if (sourcesData) {
+              tracks = sourcesData.tracks || [];
+              intro = sourcesData.intro || { start: 0, end: 0 };
+              outro = sourcesData.outro || { start: 0, end: 0 };
+            }
           }
-          currentIndex += index[1];
         }
-
-        const encryptedSource = encArr.join("");
-
-        const cipher = Uint8Array.from(atob(encryptedSource), (c) => c.charCodeAt(0));
-        const salt = cipher.slice(8, 16);
-
-        const passwordBytes = new TextEncoder().encode(secret);
-        const password = new Uint8Array([...passwordBytes, ...salt]);
-
-        async function md5(data: Uint8Array): Promise<Uint8Array> {
-          const hash = await crypto.subtle.digest("MD5", data.buffer as ArrayBuffer);
-          return new Uint8Array(hash);
-        }
-
-        const hashes: Uint8Array[] = [];
-        let digest = password;
-
-        for (let i = 0; i < 3; i++) {
-          hashes[i] = await md5(digest);
-          const newDigest = new Uint8Array(hashes[i].length + password.length);
-          newDigest.set(hashes[i]);
-          newDigest.set(password, hashes[i].length);
-          digest = newDigest;
-        }
-
-        const key = new Uint8Array([...hashes[0], ...hashes[1]]);
-        const iv = hashes[2];
-        const contents = cipher.slice(16);
-
-        const cryptoKey = await crypto.subtle.importKey(
-          "raw", key, { name: "AES-CBC" }, false, ["decrypt"]
-        );
-        const decrypted = await crypto.subtle.decrypt(
-          { name: "AES-CBC", iv: iv.buffer as ArrayBuffer }, cryptoKey, contents.buffer as ArrayBuffer
-        );
-
-        const decoded = new TextDecoder().decode(decrypted);
-        const padLen = decoded.charCodeAt(decoded.length - 1);
-        const unpadded = decoded.slice(0, decoded.length - padLen);
-        const parsed = JSON.parse(unpadded);
-
-        result = {
-          sources: parsed.map((s: { file: string; type: string }) => ({ url: s.file, type: s.type })),
-          tracks: sourcesData.tracks || [],
-          intro: sourcesData.intro || { start: 0, end: 0 },
-          outro: sourcesData.outro || { start: 0, end: 0 },
-        };
+      } catch {
+        // Tracks are optional — iframe will still work without them
+        console.log("Could not extract tracks, using iframe only");
       }
+
+      result = {
+        embedUrl,
+        sources: [], // No HLS sources — using iframe
+        tracks,
+        intro,
+        outro,
+      };
       break;
     }
 
@@ -663,7 +543,6 @@ async function processAction(
     case 'translate-subtitle': {
       if (!subtitleUrl) throw new Error("subtitleUrl required");
 
-      // Check DB cache first
       const urlHash = simpleHash(subtitleUrl);
       const dbCached = await getCachedTranslation(urlHash);
       if (dbCached) {
@@ -699,7 +578,6 @@ async function processAction(
       const translateBatch = async (texts: string[]): Promise<string[]> => {
         const joined = texts.join("\n");
 
-        // Provider 1: Google Translate (free, fast)
         try {
           const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=id&dt=t&q=${encodeURIComponent(joined)}`;
           const res = await fetch(url);
@@ -713,59 +591,45 @@ async function processAction(
           }
         } catch { /* fallback */ }
 
-        // Provider 2: OpenRouter (ultra-fast AI)
-try {
-  const apiKey = Deno.env.get("OPENROUTER_API_KEY");
-  if (apiKey) {
+        try {
+          const apiKey = Deno.env.get("OPENROUTER_API_KEY");
+          if (apiKey) {
+            const DELIM = "<<<SEP>>>";
+            const aiRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${apiKey}`,
+                "Content-Type": "application/json",
+                "X-Title": "subtitle-translator"
+              },
+              body: JSON.stringify({
+                model: "deepseek/deepseek-chat",
+                temperature: 0,
+                max_tokens: 4000,
+                messages: [
+                  {
+                    role: "system",
+                    content: "Translate to Indonesian. Keep EXACT structure. Do not merge or split lines. Return ONLY translation separated by <<<SEP>>>."
+                  },
+                  { role: "user", content: texts.join(` ${DELIM} `) }
+                ],
+              }),
+            });
 
-    const DELIM = "<<<SEP>>>";
-
-    const aiRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://your-site.com", // optional
-        "X-Title": "subtitle-translator"
-      },
-      body: JSON.stringify({
-        // 🔥 model cepat
-        model: "deepseek/deepseek-chat", 
-        temperature: 0,
-        max_tokens: 4000,
-        messages: [
-          {
-            role: "system",
-            content:
-              "Translate to Indonesian. Keep EXACT structure. Do not merge or split lines. Return ONLY translation separated by <<<SEP>>>."
-          },
-          {
-            role: "user",
-            content: texts.join(` ${DELIM} `)
+            if (aiRes.ok) {
+              const ai = await aiRes.json();
+              const raw = ai?.choices?.[0]?.message?.content || "";
+              let split = raw.split(DELIM).map((l: string) => l.trim()).filter(Boolean);
+              if (split.length !== texts.length) {
+                split = raw.split("\n").map((l: string) => l.trim()).filter(Boolean);
+              }
+              if (split.length === texts.length) return split;
+              if (split.length > texts.length) return split.slice(0, texts.length);
+              return texts.map((t, i) => split[i] || t);
+            }
           }
-        ],
-      }),
-    });
+        } catch { /* fallback */ }
 
-    if (aiRes.ok) {
-      const ai = await aiRes.json();
-      const raw = ai?.choices?.[0]?.message?.content || "";
-
-      let split = raw.split(DELIM).map((l: string) => l.trim()).filter(Boolean);
-
-      if (split.length !== texts.length) {
-        split = raw.split("\n").map((l: string) => l.trim()).filter(Boolean);
-      }
-
-      if (split.length === texts.length) return split;
-      if (split.length > texts.length) return split.slice(0, texts.length);
-
-      return texts.map((t, i) => split[i] || t);
-    }
-  }
-} catch { /* fallback */ }
-
-        // Provider 3: MyMemory fallback
         try {
           const results: string[] = [];
           for (const text of texts) {
@@ -797,10 +661,7 @@ try {
       }
 
       const vtt = "WEBVTT\n\n" + translatedCues.join("\n\n");
-
-      // Save to DB cache (fire-and-forget)
       saveCachedTranslation(urlHash, subtitleUrl, vtt);
-
       result = { vtt };
       break;
     }
