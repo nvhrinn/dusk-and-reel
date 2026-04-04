@@ -1,16 +1,23 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Search, Home, Flame, User } from "lucide-react";
+import { Search, Home, Flame, User, LogIn, LogOut, Shield } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Navbar = () => {
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
+  const { user, isAdmin, logout } = useAuth();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
       navigate(`/search?q=${encodeURIComponent(query.trim())}`);
     }
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate("/");
   };
 
   return (
@@ -21,7 +28,7 @@ const Navbar = () => {
           <span className="font-display font-bold text-lg text-gradient">AniRull</span>
         </Link>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <Link
             to="/"
             className="hidden sm:flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -29,6 +36,38 @@ const Navbar = () => {
             <Home className="w-4 h-4" />
             Home
           </Link>
+
+          {user ? (
+            <>
+              {isAdmin && (
+                <Link
+                  to="/admin"
+                  className="flex items-center gap-1 text-sm text-primary hover:opacity-80 transition"
+                >
+                  <Shield className="w-4 h-4" />
+                  <span className="hidden sm:inline">Admin</span>
+                </Link>
+              )}
+              <span className="text-xs text-muted-foreground hidden sm:inline">
+                {user.username}
+              </span>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </>
+          ) : (
+            <Link
+              to="/login"
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <LogIn className="w-4 h-4" />
+              <span className="hidden sm:inline">Login</span>
+            </Link>
+          )}
+
           <Link
             to="/about"
             className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
