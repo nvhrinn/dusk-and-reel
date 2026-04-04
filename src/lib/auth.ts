@@ -1,4 +1,4 @@
-import { supabase2 } from "@/integrations/supabase/client2";
+import { supabase2 } from "@/integrations/supabase/client";
 
 export interface User {
   id: string;
