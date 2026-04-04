@@ -41,30 +41,34 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          
-          {{MAINTENANCE ? (
+
+          {MAINTENANCE ? (
             <Maintenance />
           ) : (
             <>
-          <Navbar />
-          <FloatingDonate />
-          <JoinWhatsAppPopup />
-          <ThemeSwitcher />
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/about" element={<AboutDeveloper />} />
-            <Route path="/report" element={<ReportPage />} />
-            <Route path="/search" element={<SearchPage />} />
-            <Route path="/anime/:id" element={<AnimeDetail />} />
-            <Route path="/watch/:id" element={<WatchPage />} />
-            <Route path="/special" element={<SpecialPage />} />
-            <Route path="/movie" element={<MoviePage />} />
-            <Route path="/genres" element={<GenresPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/admin" element={<AdminPage />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+              <Navbar />
+              <FloatingDonate />
+              <JoinWhatsAppPopup />
+              <ThemeSwitcher />
+
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/about" element={<AboutDeveloper />} />
+                <Route path="/report" element={<ReportPage />} />
+                <Route path="/search" element={<SearchPage />} />
+                <Route path="/anime/:id" element={<AnimeDetail />} />
+                <Route path="/watch/:id" element={<WatchPage />} />
+                <Route path="/special" element={<SpecialPage />} />
+                <Route path="/movie" element={<MoviePage />} />
+                <Route path="/genres" element={<GenresPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/admin" element={<AdminPage />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </>
+          )}
+
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
