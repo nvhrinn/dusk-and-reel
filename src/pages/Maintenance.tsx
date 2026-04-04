@@ -23,3 +23,5 @@ const Maintenance = () => {
     </div>
   );
 };
+
+export default Maintenance;
