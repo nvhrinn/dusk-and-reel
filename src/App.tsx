@@ -21,7 +21,6 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import AdminPage from "./pages/AdminPage";
 import JoinWhatsAppPopup from "@/components/waPopup";
-import Maintenance from "./pages/Maintenance";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,10 +39,6 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-            {true && <Maintenance />}
-
-  {!true && (
-    <>
           <Navbar />
           <FloatingDonate />
           <JoinWhatsAppPopup />
