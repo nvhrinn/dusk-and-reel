@@ -14,7 +14,7 @@ const Maintenance: React.FC = () => {
         </h1>
 
         {/* Title */}
-        <h2 className="text-2xl text-red font-semibold tracking-tight mb-3">
+        <h2 className="text-2xl text-red-500 font-semibold tracking-tight mb-3">
           Maintenance
         </h2>
 
