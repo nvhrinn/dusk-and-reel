@@ -5,7 +5,7 @@ import type { Database } from './types';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-const SUPABASE_URL2 = import.meta.env.VITE_TRANSLATE_SUPABASE_URL;
+const SUPABASE_URL2 = import.meta.env.VITE_SUPABASE_TRANSLATE_URL;
 const SUPABASE_PUBLISHABLE_KEY2 = import.meta.env.VITE_SUPABASE_TRANSLATE_PUBLISHABLE_KEY;
 
 
