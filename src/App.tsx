@@ -32,6 +32,8 @@ const queryClient = new QueryClient({
   },
 });
 
+const isMaintenance = true;
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
