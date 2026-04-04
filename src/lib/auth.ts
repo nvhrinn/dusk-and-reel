@@ -7,7 +7,7 @@ export interface User {
 }
 
 async function callAuthApi<T>(body: Record<string, unknown>): Promise<T> {
-  const { data, error } = await supabase2.functions.invoke("user-auth", { body });
+  const { data, error } = await supabase.functions.invoke("user-auth", { body });
   if (error) throw new Error(error.message);
   if (data?.error) throw new Error(data.error);
   return data as T;
