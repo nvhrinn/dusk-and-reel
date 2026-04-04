@@ -1,7 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 
-const Maintenance: React.FC = () => {
+const Maintenance = () => {
   const whatsappLink = "https://whatsapp.com/channel/0029VbCGAUm3bbV9AjUZaY0v"; // ganti link kamu
 
   return (
@@ -14,7 +14,7 @@ const Maintenance: React.FC = () => {
         </h1>
 
         {/* Title */}
-        <h2 className="text-2xl text-red-500 font-semibold tracking-tight mb-3">
+        <h2 className="text-2xl font-semibold tracking-tight mb-3">
           Maintenance
         </h2>
 
