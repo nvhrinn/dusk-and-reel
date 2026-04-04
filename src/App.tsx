@@ -32,7 +32,6 @@ const queryClient = new QueryClient({
   },
 });
 
-const isMaintenance = true;
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -41,10 +40,10 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          {isMaintenance ? (
-            <Maintenance />
-          ) : (
-            <>
+            {true && <Maintenance />}
+
+  {!true && (
+    <>
           <Navbar />
           <FloatingDonate />
           <JoinWhatsAppPopup />
