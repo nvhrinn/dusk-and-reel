@@ -1,8 +1,7 @@
-import React from "react";
 import { Button } from "@/components/ui/button";
 
-const Maintenance = () => {
-  const whatsappLink = "https://whatsapp.com/channel/0029VbCGAUm3bbV9AjUZaY0v"; // ganti link kamu
+export default function Maintenance() {
+  const whatsappLink = "https://whatsapp.com/channel/0029VbCGAUm3bbV9AjUZaY0v";
 
   return (
     <div className="min-h-screen bg-black text-white flex items-center justify-center px-5">
@@ -14,7 +13,7 @@ const Maintenance = () => {
         </h1>
 
         {/* Title */}
-        <h2 className="text-2xl font-semibold tracking-tight mb-3">
+        <h2 className="text-2xl text-red-500 font-semibold tracking-tight mb-3">
           Maintenance
         </h2>
 
@@ -40,12 +39,10 @@ const Maintenance = () => {
 
         {/* Footer */}
         <p className="text-xs text-white/40 mt-6">
-          Terima kasih atas kesabaranmu dan Jangan lupa join Channel untuk mendapatkan info penting!
+          Terima kasih atas kesabaranmu dan jangan lupa join channel untuk info penting!
         </p>
 
       </div>
     </div>
   );
-};
-
-export default Maintenance;
+}
