@@ -1,42 +1,24 @@
 const Maintenance = () => {
   return (
-    <div className="min-h-screen bg-black text-white flex items-center justify-center px-4">
-      <div className="text-center max-w-xs w-full">
-
-        {/* Brand */}
-        <h1 className="text-lg text-white/70 mb-6">
-          Anirull
+    <div className="min-h-screen flex items-center justify-center bg-black text-white px-4">
+      <div className="text-center">
+        
+        <h1 className="text-3xl font-bold mb-3">
+          Anirull Maintenance 🚧
         </h1>
 
-        {/* Title */}
-        <h2 className="text-2xl font-semibold text-red-500 mb-3">
-          Maintenance
-        </h2>
-
-        {/* Divider */}
-        <div className="w-10 h-px bg-white/20 mx-auto mb-4"></div>
-
-        {/* Desc */}
-        <p className="text-sm text-white/60 mb-6 leading-relaxed">
-          Website sedang dalam perbaikan.
-          <br />
-          Akan segera kembali online.
+        <p className="text-gray-400 mb-6">
+          Website sedang diperbaiki. Join WhatsApp untuk info update terbaru.
         </p>
 
-        {/* Button */}
         <a
-          href="https://whatsapp.com/channel/0029VbCGAUm3bbV9AjUZaY0v"
+          href="https://chat.whatsapp.com/XXXXXXXX"
           target="_blank"
           rel="noopener noreferrer"
-          className="block w-full bg-white text-black py-2 rounded-md text-sm font-medium hover:bg-white/90 transition"
+          className="inline-block bg-green-500 hover:bg-green-600 px-6 py-3 rounded-lg font-semibold"
         >
-          Join WhatsApp Channel
+          Join WhatsApp
         </a>
-
-        {/* Footer */}
-        <p className="text-xs text-white/40 mt-6">
-          Terima kasih atas kesabaranmu
-        </p>
 
       </div>
     </div>
