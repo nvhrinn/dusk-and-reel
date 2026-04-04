@@ -14,6 +14,33 @@ const AdminPage = () => {
   const [loading, setLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  const loadKeys = async () => {
+    if (!user) return;
+    try {
+      const { keys } = await authApi.listKeys(user.id);
+      setKeys(keys);
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const loadUsers = async () => {
+    if (!user) return;
+    try {
+      const { users } = await authApi.listUsers(user.id);
+      setUsers(users);
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  useEffect(() => {
+    if (user && isAdmin) {
+      loadKeys();
+      loadUsers();
+    }
+  }, [user, isAdmin]);
+
   if (!user || !isAdmin) return <Navigate to="/login" replace />;
 
   const loadKeys = async () => {
