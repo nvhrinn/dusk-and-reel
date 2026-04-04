@@ -1,21 +1,20 @@
 const Maintenance = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black text-white px-4">
-      <div className="text-center">
-        
-        <h1 className="text-3xl font-bold mb-3">
-          Anirull Maintenance 🚧
+    <div className="fixed inset-0 z-[9999] bg-black text-white flex items-center justify-center px-4">
+      <div className="text-center space-y-6">
+
+        <h1 className="text-3xl font-semibold">
+          Maintenance 🚧
         </h1>
 
-        <p className="text-gray-400 mb-6">
-          Website sedang diperbaiki. Join WhatsApp untuk info update terbaru.
+        <p className="text-gray-400 text-sm">
+          Website sedang diperbaiki.
         </p>
 
         <a
           href="https://chat.whatsapp.com/XXXXXXXX"
           target="_blank"
-          rel="noopener noreferrer"
-          className="inline-block bg-green-500 hover:bg-green-600 px-6 py-3 rounded-lg font-semibold"
+          className="bg-green-500 px-6 py-3 rounded-xl font-semibold"
         >
           Join WhatsApp
         </a>
@@ -24,5 +23,3 @@ const Maintenance = () => {
     </div>
   );
 };
-
-export default Maintenance;
