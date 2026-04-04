@@ -43,28 +43,8 @@ const AdminPage = () => {
 
   if (!user || !isAdmin) return <Navigate to="/login" replace />;
 
-  const loadKeys = async () => {
-    try {
-      const { keys } = await authApi.listKeys(user.id);
-      setKeys(keys);
-    } catch (err: any) {
-      toast.error(err.message);
-    }
-  };
 
-  const loadUsers = async () => {
-    try {
-      const { users } = await authApi.listUsers(user.id);
-      setUsers(users);
-    } catch (err: any) {
-      toast.error(err.message);
-    }
-  };
 
-  useEffect(() => {
-    loadKeys();
-    loadUsers();
-  }, []);
 
   const handleGenerate = async () => {
     setLoading(true);
