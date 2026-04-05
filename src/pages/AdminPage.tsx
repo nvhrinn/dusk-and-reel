@@ -1,12 +1,20 @@
 import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
 import { authApi } from "@/lib/auth";
-import { Navigate } from "react-router-dom";
-import { Key, Users, Copy, Plus, Check, LogOut } from "lucide-react";
+import { Key, Users, Copy, Plus, Check, LogIn, Shield } from "lucide-react";
 import { toast } from "sonner";
 
+interface AdminUser {
+  id: string;
+  username: string;
+  role: string;
+}
+
 const AdminPage = () => {
-  const { user, isAdmin, logout } = useAuth();
+  const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
+
   const [tab, setTab] = useState<"keys" | "users">("keys");
   const [keys, setKeys] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
@@ -14,10 +22,29 @@ const AdminPage = () => {
   const [loading, setLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const loadKeys = async () => {
-    if (!user) return;
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!username.trim() || !password) return;
+    setLoginLoading(true);
     try {
-      const { keys } = await authApi.listKeys(user.id);
+      const { user } = await authApi.login(username, password);
+      if (user.role !== "admin") {
+        toast.error("Akun ini bukan admin");
+        return;
+      }
+      setAdminUser(user);
+      toast.success("Login admin berhasil!");
+    } catch (err: any) {
+      toast.error(err.message || "Login gagal");
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const loadKeys = async () => {
+    if (!adminUser) return;
+    try {
+      const { keys } = await authApi.listKeys(adminUser.id);
       setKeys(keys);
     } catch (err: any) {
       toast.error(err.message);
@@ -25,9 +52,9 @@ const AdminPage = () => {
   };
 
   const loadUsers = async () => {
-    if (!user) return;
+    if (!adminUser) return;
     try {
-      const { users } = await authApi.listUsers(user.id);
+      const { users } = await authApi.listUsers(adminUser.id);
       setUsers(users);
     } catch (err: any) {
       toast.error(err.message);
@@ -35,21 +62,17 @@ const AdminPage = () => {
   };
 
   useEffect(() => {
-    if (user && isAdmin) {
+    if (adminUser) {
       loadKeys();
       loadUsers();
     }
-  }, [user, isAdmin]);
-
-  if (!user || !isAdmin) return <Navigate to="/login" replace />;
-
-
-
+  }, [adminUser]);
 
   const handleGenerate = async () => {
+    if (!adminUser) return;
     setLoading(true);
     try {
-      await authApi.generateKeys(user.id, genCount);
+      await authApi.generateKeys(adminUser.id, genCount);
       toast.success(`${genCount} key berhasil dibuat!`);
       loadKeys();
     } catch (err: any) {
@@ -66,6 +89,53 @@ const AdminPage = () => {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  // Login form
+  if (!adminUser) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <div className="w-full max-w-sm space-y-6">
+          <div className="text-center space-y-2">
+            <Shield className="w-10 h-10 text-primary mx-auto" />
+            <h1 className="text-2xl font-display font-bold text-foreground">Admin Panel</h1>
+            <p className="text-sm text-muted-foreground">Masuk dengan akun admin</p>
+          </div>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="text-sm text-muted-foreground mb-1 block">Username</label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Admin username"
+                className="w-full h-10 px-3 rounded-lg bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                required
+              />
+            </div>
+            <div>
+              <label className="text-sm text-muted-foreground mb-1 block">Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Admin password"
+                className="w-full h-10 px-3 rounded-lg bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={loginLoading}
+              className="w-full h-10 rounded-lg bg-primary text-primary-foreground font-medium flex items-center justify-center gap-2 hover:opacity-90 transition disabled:opacity-50"
+            >
+              <LogIn className="w-4 h-4" />
+              {loginLoading ? "Loading..." : "Masuk Admin"}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   const unusedKeys = keys.filter((k) => !k.used_by);
   const usedKeys = keys.filter((k) => k.used_by);
 
@@ -74,8 +144,8 @@ const AdminPage = () => {
       <div className="container mx-auto max-w-2xl">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-xl font-display font-bold text-foreground">Admin Panel</h1>
-          <button onClick={logout} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition">
-            <LogOut className="w-4 h-4" /> Logout
+          <button onClick={() => setAdminUser(null)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition">
+            Logout
           </button>
         </div>
 
@@ -101,7 +171,6 @@ const AdminPage = () => {
 
         {tab === "keys" && (
           <div className="space-y-4">
-            {/* Generate */}
             <div className="flex items-center gap-3 p-4 bg-card rounded-xl border border-border">
               <label className="text-sm text-muted-foreground whitespace-nowrap">Jumlah:</label>
               <input
@@ -122,7 +191,6 @@ const AdminPage = () => {
               </button>
             </div>
 
-            {/* Unused Keys */}
             <div>
               <h3 className="text-sm font-medium text-foreground mb-2">
                 Belum Digunakan ({unusedKeys.length})
@@ -145,7 +213,6 @@ const AdminPage = () => {
               </div>
             </div>
 
-            {/* Used Keys */}
             {usedKeys.length > 0 && (
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground mb-2">
