@@ -7,8 +7,8 @@ const CORS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const translateUrl = Deno.env.get("SUPABASE_TRANSLATE_URL")!;
-const translateKey = Deno.env.get("SUPABASE_TRANSLATE_SERVICE_ROLE_KEY")!;
+const translateUrl = Deno.env.get("TRANSLATE_DB_URL")!;
+const translateKey = Deno.env.get("TRANSLATE_DB_SERVICE_ROLE_KEY")!;
 
 function getDb() {
   return createClient(translateUrl, translateKey);
