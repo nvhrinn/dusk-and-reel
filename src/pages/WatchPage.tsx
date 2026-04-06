@@ -243,6 +243,21 @@ const WatchPage = () => {
   const hasDub = megacloudServers && megacloudServers.dub.length > 0;
   const currentSubLabel = subtitleOptions[selectedTrack]?.label || "—";
 
+  if (!user) {
+    return (
+      <div className="min-h-screen pt-14 bg-background flex flex-col items-center justify-center gap-4 px-4">
+        <p className="text-lg font-medium text-foreground">Login untuk menonton anime</p>
+        <p className="text-sm text-muted-foreground">Kamu harus login terlebih dahulu</p>
+        <button
+          onClick={() => navigate("/login")}
+          className="px-6 py-2.5 rounded-xl bg-primary text-primary-foreground font-medium text-sm"
+        >
+          Login
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen pt-14 bg-background">
       <div className="container mx-auto px-4 py-6 max-w-6xl">
