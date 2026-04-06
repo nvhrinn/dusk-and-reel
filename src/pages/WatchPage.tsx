@@ -81,6 +81,7 @@ const WatchPage = () => {
   const epId = params.get("ep");
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isVip = user?.is_vip === true || user?.role === "admin";
   const [coupons, setCouponsState] = useState(getCoupons());
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [audioType, setAudioType] = useState<"sub" | "dub">("sub");
@@ -90,14 +91,16 @@ const WatchPage = () => {
   const [selectedTrack, setSelectedTrack] = useState<number>(0);
 
   useEffect(() => {
+    if (isVip) return; // VIP users don't need coupons
     const c = getCoupons();
     if (c > 10) { saveCoupons(2); setCouponsState(2); } else { setCouponsState(c); }
-  }, []);
+  }, [isVip]);
 
   useEffect(() => {
     if (!epId) return;
+    if (isVip) { setEpisodeUnlocked(true); return; }
     setEpisodeUnlocked(getUnlockedEpisodes().includes(epId));
-  }, [epId]);
+  }, [epId, isVip]);
 
   const handleUnlock = () => {
     if (!epId) return;
