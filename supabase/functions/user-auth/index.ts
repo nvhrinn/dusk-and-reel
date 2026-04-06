@@ -397,6 +397,100 @@ Deno.serve(async (req) => {
         });
       }
 
+      case "generate-vip-codes": {
+        const { userId, count = 5 } = params;
+        if (!userId) {
+          return new Response(JSON.stringify({ error: "Unauthorized" }), {
+            status: 401, headers: { ...CORS, "Content-Type": "application/json" },
+          });
+        }
+
+        const { data: admin } = await db.from("users").select("role").eq("id", userId).single();
+        if (!admin || admin.role !== "admin") {
+          return new Response(JSON.stringify({ error: "Hanya admin yang bisa generate VIP code" }), {
+            status: 403, headers: { ...CORS, "Content-Type": "application/json" },
+          });
+        }
+
+        const codes = [];
+        const numCodes = Math.min(Math.max(1, count), 50);
+        for (let i = 0; i < numCodes; i++) {
+          codes.push({ code: generateVipCode(), created_by: userId });
+        }
+
+        const { data: insertedCodes, error: insertError } = await db
+          .from("vip_codes")
+          .insert(codes)
+          .select("id, code, created_at");
+
+        if (insertError) {
+          return new Response(JSON.stringify({ error: "Gagal generate VIP codes: " + insertError.message }), {
+            status: 500, headers: { ...CORS, "Content-Type": "application/json" },
+          });
+        }
+
+        return new Response(JSON.stringify({ codes: insertedCodes }), {
+          headers: { ...CORS, "Content-Type": "application/json" },
+        });
+      }
+
+      case "list-vip-codes": {
+        const { userId } = params;
+        if (!userId) {
+          return new Response(JSON.stringify({ error: "Unauthorized" }), {
+            status: 401, headers: { ...CORS, "Content-Type": "application/json" },
+          });
+        }
+
+        const { data: admin } = await db.from("users").select("role").eq("id", userId).single();
+        if (!admin || admin.role !== "admin") {
+          return new Response(JSON.stringify({ error: "Forbidden" }), {
+            status: 403, headers: { ...CORS, "Content-Type": "application/json" },
+          });
+        }
+
+        const { data: allCodes } = await db
+          .from("vip_codes")
+          .select("id, code, used_by, used_at, created_at")
+          .order("created_at", { ascending: false })
+          .limit(200);
+
+        return new Response(JSON.stringify({ codes: allCodes || [] }), {
+          headers: { ...CORS, "Content-Type": "application/json" },
+        });
+      }
+
+      case "redeem-vip-code": {
+        const { userId, code } = params;
+        if (!userId || !code) {
+          return new Response(JSON.stringify({ error: "Data tidak lengkap" }), {
+            status: 400, headers: { ...CORS, "Content-Type": "application/json" },
+          });
+        }
+
+        const { data: vipCode, error: codeErr } = await db
+          .from("vip_codes")
+          .select("*")
+          .eq("code", code.trim())
+          .is("used_by", null)
+          .single();
+
+        if (codeErr || !vipCode) {
+          return new Response(JSON.stringify({ error: "Kode VIP tidak valid atau sudah digunakan" }), {
+            status: 400, headers: { ...CORS, "Content-Type": "application/json" },
+          });
+        }
+
+        // Mark code as used
+        await db.from("vip_codes").update({ used_by: userId, used_at: new Date().toISOString() }).eq("id", vipCode.id);
+        // Update user to VIP
+        await db.from("users").update({ is_vip: true }).eq("id", userId);
+
+        return new Response(JSON.stringify({ ok: true }), {
+          headers: { ...CORS, "Content-Type": "application/json" },
+        });
+      }
+
       default:
         return new Response(JSON.stringify({ error: "Unknown action" }), {
           status: 400, headers: { ...CORS, "Content-Type": "application/json" },
