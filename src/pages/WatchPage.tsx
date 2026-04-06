@@ -7,6 +7,7 @@ import { ArrowLeft, Monitor, Volume2, Languages, ChevronDown, Ticket } from "luc
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import AdRewardDialog from "@/components/AdRewardDialog";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Dropdown = ({
   label,
