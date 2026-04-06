@@ -7,6 +7,7 @@ import { ArrowLeft, Monitor, Volume2, Languages, ChevronDown, Ticket } from "luc
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import AdRewardDialog from "@/components/AdRewardDialog";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Dropdown = ({
   label,
@@ -79,6 +80,7 @@ const WatchPage = () => {
   const [params] = useSearchParams();
   const epId = params.get("ep");
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [coupons, setCouponsState] = useState(getCoupons());
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [audioType, setAudioType] = useState<"sub" | "dub">("sub");
@@ -240,6 +242,21 @@ const WatchPage = () => {
   const hasSub = megacloudServers && megacloudServers.sub.length > 0;
   const hasDub = megacloudServers && megacloudServers.dub.length > 0;
   const currentSubLabel = subtitleOptions[selectedTrack]?.label || "—";
+
+  if (!user) {
+    return (
+      <div className="min-h-screen pt-14 bg-background flex flex-col items-center justify-center gap-4 px-4">
+        <p className="text-lg font-medium text-foreground">Login untuk menonton anime</p>
+        <p className="text-sm text-muted-foreground">Kamu harus login terlebih dahulu</p>
+        <button
+          onClick={() => navigate("/login")}
+          className="px-6 py-2.5 rounded-xl bg-primary text-primary-foreground font-medium text-sm"
+        >
+          Login
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen pt-14 bg-background">

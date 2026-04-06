@@ -48,15 +48,13 @@ const Navbar = () => {
                   <span className="hidden sm:inline">Admin</span>
                 </Link>
               )}
-              <span className="text-xs text-muted-foreground hidden sm:inline">
-                {user.username}
-              </span>
-              <button
-                onClick={handleLogout}
+              <Link
+                to="/profile"
                 className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition"
               >
-                <LogOut className="w-4 h-4" />
-              </button>
+                <User className="w-4 h-4" />
+                <span className="hidden sm:inline">{user.username}</span>
+              </Link>
             </>
           ) : (
             <Link
