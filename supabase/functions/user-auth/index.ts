@@ -35,6 +35,15 @@ function generateKey(): string {
   return segments.join("-");
 }
 
+function generateVipCode(): string {
+  const chars = "0123456789";
+  let code = "";
+  for (let i = 0; i < 4; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return code;
+}
+
 // Auto-create tables if not exist
 async function ensureTables(db: ReturnType<typeof createClient>) {
   const { error } = await db.rpc("ensure_user_tables" as any);
@@ -86,6 +95,7 @@ Deno.serve(async (req) => {
             username TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
             role TEXT NOT NULL DEFAULT 'user',
+            is_vip BOOLEAN NOT NULL DEFAULT false,
             activation_key TEXT,
             created_at TIMESTAMPTZ DEFAULT now()
           )`,
@@ -97,6 +107,15 @@ Deno.serve(async (req) => {
             used_at TIMESTAMPTZ,
             created_at TIMESTAMPTZ DEFAULT now()
           )`,
+          `CREATE TABLE IF NOT EXISTS public.vip_codes (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            code TEXT UNIQUE NOT NULL,
+            created_by uuid REFERENCES public.users(id),
+            used_by uuid REFERENCES public.users(id),
+            used_at TIMESTAMPTZ,
+            created_at TIMESTAMPTZ DEFAULT now()
+          )`,
+          `ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_vip BOOLEAN NOT NULL DEFAULT false`,
         ];
 
         for (const sql of sqlStatements) {
@@ -187,7 +206,7 @@ Deno.serve(async (req) => {
             role: "user",
             activation_key: key.toUpperCase().trim(),
           })
-          .select("id, username, role")
+          .select("id, username, role, is_vip")
           .single();
 
         if (insertError) {
@@ -218,7 +237,7 @@ Deno.serve(async (req) => {
         const pwHash = await hashPassword(password);
         const { data: user, error: loginError } = await db
           .from("users")
-          .select("id, username, role")
+          .select("id, username, role, is_vip")
           .eq("username", username.toLowerCase().trim())
           .eq("password_hash", pwHash)
           .single();
