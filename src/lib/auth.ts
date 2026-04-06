@@ -4,8 +4,6 @@ export interface User {
   id: string;
   username: string;
   role: "admin" | "user";
-  is_vip: boolean;
-  avatar_url?: string;
 }
 
 async function callAuthApi<T>(body: Record<string, unknown>): Promise<T> {
@@ -35,16 +33,6 @@ export const authApi = {
     }),
   changePassword: (userId: string, oldPassword: string, newPassword: string) =>
     callAuthApi<{ ok: boolean }>({ action: "change-password", userId, oldPassword, newPassword }),
-  generateVipCodes: (userId: string, count = 5) =>
-    callAuthApi<{ codes: { id: string; code: string; created_at: string }[] }>({
-      action: "generate-vip-codes", userId, count,
-    }),
-  listVipCodes: (userId: string) =>
-    callAuthApi<{ codes: { id: string; code: string; used_by: string | null; used_at: string | null; created_at: string }[] }>({
-      action: "list-vip-codes", userId,
-    }),
-  redeemVipCode: (userId: string, code: string) =>
-    callAuthApi<{ ok: boolean }>({ action: "redeem-vip-code", userId, code }),
 };
 
 const STORAGE_KEY = "anirull_user";
