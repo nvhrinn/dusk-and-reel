@@ -4,6 +4,8 @@ export interface User {
   id: string;
   username: string;
   role: "admin" | "user";
+  is_vip?: boolean;
+  avatar_url?: string;
 }
 
 async function callAuthApi<T>(body: Record<string, unknown>): Promise<T> {
