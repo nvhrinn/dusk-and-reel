@@ -1,4 +1,4 @@
-import { corsHeaders } from "https://deno.land/x/cors_headers@v0.1.1/mod.ts";
+// CORS headers defined inline
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const CORS = {
@@ -496,8 +496,9 @@ Deno.serve(async (req) => {
           status: 400, headers: { ...CORS, "Content-Type": "application/json" },
         });
     }
-  } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Internal server error";
+    return new Response(JSON.stringify({ error: message }), {
       status: 500, headers: { ...CORS, "Content-Type": "application/json" },
     });
   }
