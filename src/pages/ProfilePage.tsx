@@ -19,8 +19,8 @@ const ProfilePage = () => {
     return (
       <div className="min-h-screen pt-14 bg-background flex flex-col items-center justify-center gap-4 px-4">
         <User className="w-12 h-12 text-muted-foreground" />
-        <p className="text-lg font-medium text-foreground">Kamu belum login</p>
-        <p className="text-sm text-muted-foreground">Silakan login untuk melihat profil</p>
+        <p className="text-lg font-medium text-foreground">You are not logged in</p>
+        <p className="text-sm text-muted-foreground">Please login to view profile</p>
         <button
           onClick={() => navigate("/login")}
           className="px-6 py-2.5 rounded-xl bg-primary text-primary-foreground font-medium text-sm"
@@ -46,7 +46,7 @@ const ProfilePage = () => {
       const base64 = reader.result as string;
       const updated = { ...user, avatar_url: base64 };
       login(updated);
-      toast.success("Foto profil berhasil diubah");
+      toast.success("Profile photo changed successfully");
     };
     reader.readAsDataURL(file);
   };
@@ -57,11 +57,11 @@ const ProfilePage = () => {
     setLoading(true);
     try {
       await authApi.changePassword(user.id, oldPw, newPw);
-      toast.success("Password berhasil diubah");
+      toast.success("Password changed successfully");
       setOldPw("");
       setNewPw("");
     } catch (err: any) {
-      toast.error(err.message || "Gagal mengubah password");
+      toast.error(err.message || "Failed to change password");
     } finally {
       setLoading(false);
     }
@@ -75,10 +75,10 @@ const ProfilePage = () => {
       await authApi.redeemVipCode(user.id, vipCode.trim());
       const updated = { ...user, is_vip: true };
       login(updated);
-      toast.success("Selamat! Kamu sekarang VIP 🎉");
+      toast.success("Congratulations! You're now a VIP 🎉");
       setVipCode("");
     } catch (err: any) {
-      toast.error(err.message || "Kode VIP tidak valid");
+      toast.error(err.message || "VIP code is invalid");
     } finally {
       setVipLoading(false);
     }
@@ -87,7 +87,7 @@ const ProfilePage = () => {
   const handleLogout = () => {
     logout();
     navigate("/");
-    toast.success("Berhasil logout");
+    toast.success("Successfully logged out");
   };
 
   return (
@@ -137,28 +137,28 @@ const ProfilePage = () => {
 
         {/* Status Card */}
         <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
-          <h2 className="font-bold text-foreground text-sm">Status Akun</h2>
+          <h2 className="font-bold text-foreground text-sm">Account Status</h2>
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Role</span>
               <span className="text-foreground font-medium capitalize">{user.role}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Status VIP</span>
+              <span className="text-muted-foreground">VIP Status</span>
               {isVip || isAdmin ? (
                 <span className="flex items-center gap-1 text-amber-500 font-medium">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Aktif
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Active
                 </span>
               ) : (
                 <span className="flex items-center gap-1 text-muted-foreground">
-                  <XCircle className="w-3.5 h-3.5" /> Tidak Aktif
+                  <XCircle className="w-3.5 h-3.5" /> Not active
                 </span>
               )}
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Benefit</span>
+              <span className="text-muted-foreground">Benefits</span>
               <span className="text-foreground text-xs">
-                {isVip || isAdmin ? "Nonton tanpa kupon" : "Perlu kupon per episode"}
+                {isVip || isAdmin ? "Watch without coupon" : "Need coupon per episode"}
               </span>
             </div>
           </div>
@@ -169,10 +169,10 @@ const ProfilePage = () => {
   <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5 space-y-3">
     <div className="flex items-center gap-2">
       <Sparkles className="w-4 h-4 text-amber-500" />
-      <h2 className="font-bold text-foreground text-sm">Aktivasi VIP</h2>
+      <h2 className="font-bold text-foreground text-sm">VIP Activation</h2>
     </div>
     <p className="text-xs text-muted-foreground">
-      Masukkan kode VIP 4 digit dari admin untuk nonton tanpa kupon
+      Enter the 4-digit VIP code from the admin to watch without a coupon.
     </p>
     
     {/* PERBAIKAN: Tambahkan flex-col sm:flex-row agar button pindah ke bawah saat mobile */}
@@ -190,25 +190,25 @@ const ProfilePage = () => {
     disabled={vipLoading || vipCode.length !== 4}
     className="h-10 px-5 rounded-xl bg-amber-500 text-white font-medium text-sm disabled:opacity-50 flex-none shrink-0 w-max"
   >
-    {vipLoading ? "..." : "Aktifkan"}
+    {vipLoading ? "..." : "Activate"}
   </button>
 </form>
   </div>
 )}
         {/* Change Password */}
         <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
-          <h2 className="font-bold text-foreground text-sm">Ganti Password</h2>
+          <h2 className="font-bold text-foreground text-sm">Change Password</h2>
           <form onSubmit={handleChangePassword} className="space-y-3">
             <input
               type="password"
-              placeholder="Password lama"
+              placeholder="Old password"
               value={oldPw}
               onChange={(e) => setOldPw(e.target.value)}
               className="w-full h-10 px-4 rounded-xl bg-secondary text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             />
             <input
               type="password"
-              placeholder="Password baru"
+              placeholder="New password"
               value={newPw}
               onChange={(e) => setNewPw(e.target.value)}
               className="w-full h-10 px-4 rounded-xl bg-secondary text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
@@ -218,7 +218,7 @@ const ProfilePage = () => {
               disabled={loading}
               className="w-full h-10 rounded-xl bg-primary text-primary-foreground font-medium text-sm disabled:opacity-50"
             >
-              {loading ? "Mengubah..." : "Ubah Password"}
+              {loading ? "Change..." : "Change Password"}
             </button>
           </form>
         </div>
