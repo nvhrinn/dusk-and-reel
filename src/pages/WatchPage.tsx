@@ -302,6 +302,7 @@ const WatchPage = () => {
     ) : (
           <div className="w-full aspect-video rounded-lg bg-secondary flex items-center justify-center">
             <p className="text-muted-foreground">Select a server to start watching</p>
+          )}
           </div>
         )}
 
