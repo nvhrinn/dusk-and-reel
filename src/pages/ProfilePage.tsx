@@ -78,7 +78,7 @@ const ProfilePage = () => {
       toast.success("Selamat! Kamu sekarang VIP 🎉");
       setVipCode("");
     } catch (err: any) {
-      toast.error(err.error || "Kode VIP tidak valid");
+      toast.error(err.message || "Kode VIP tidak valid");
     } finally {
       setVipLoading(false);
     }
