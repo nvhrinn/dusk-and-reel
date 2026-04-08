@@ -19,10 +19,10 @@ const LoginPage = () => {
     try {
       const { user } = await authApi.login(username, password);
       login(user);
-      toast.success("Login berhasil!");
+      toast.success("Login successful!");
       navigate("/");
     } catch (err: any) {
-      toast.error(err.message || "Login gagal");
+      toast.error(err.message || "Login failed");
     } finally {
       setLoading(false);
     }
@@ -33,8 +33,8 @@ const LoginPage = () => {
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center space-y-2">
           <Flame className="w-10 h-10 text-primary mx-auto" />
-          <h1 className="text-2xl font-display font-bold text-foreground">Login AniRull</h1>
-          <p className="text-sm text-muted-foreground">Masuk ke akun kamu</p>
+          <h1 className="text-2xl font-display font-bold text-foreground">Login</h1>
+          <p className="text-sm text-muted-foreground">Log in to your account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -44,7 +44,7 @@ const LoginPage = () => {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Masukkan username"
+              placeholder="Enter username"
               className="w-full h-10 px-3 rounded-lg bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               required
             />
@@ -55,7 +55,7 @@ const LoginPage = () => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Masukkan password"
+              placeholder="Insert password"
               className="w-full h-10 px-3 rounded-lg bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               required
             />
@@ -71,7 +71,7 @@ const LoginPage = () => {
         </form>
 
         <p className="text-center text-sm text-muted-foreground">
-          Belum punya akun?{" "}
+          Don't have an account yet?{" "}
           <Link to="/register" className="text-primary hover:underline">
             Daftar
           </Link>
