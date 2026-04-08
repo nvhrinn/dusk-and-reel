@@ -95,6 +95,17 @@ const RegisterPage = () => {
               className="w-full h-10 px-3 rounded-lg bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary font-mono tracking-wider"
               required
             />
+            <p className="mt-2 text-xs text-muted-foreground">
+    Tidak dapat key?{" "}
+    <a 
+      href="https://wa.me/nomor-whatsapp-kamu" 
+      target="_blank" 
+      rel="noopener noreferrer"
+      className="text-primary hover:underline font-medium"
+    >
+      Join channel WhatsApp untuk mendapatkan
+    </a>
+  </p>
           </div>
           <button
             type="submit"
