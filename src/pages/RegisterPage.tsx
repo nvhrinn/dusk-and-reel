@@ -17,21 +17,21 @@ const RegisterPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      toast.error("Password tidak cocok");
+      toast.error("Password does not match!");
       return;
     }
     if (!activationKey.trim()) {
-      toast.error("Activation key wajib diisi");
+      toast.error("Activation key must be filled in");
       return;
     }
     setLoading(true);
     try {
       const { user } = await authApi.register(username, password, activationKey);
       login(user);
-      toast.success("Registrasi berhasil!");
+      toast.success("Registration successful!");
       navigate("/");
     } catch (err: any) {
-      toast.error(err.message || "Registrasi gagal");
+      toast.error(err.message || "Registration failed");
     } finally {
       setLoading(false);
     }
@@ -42,8 +42,8 @@ const RegisterPage = () => {
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center space-y-2">
           <Flame className="w-10 h-10 text-primary mx-auto" />
-          <h1 className="text-2xl font-display font-bold text-foreground">Daftar AniRull</h1>
-          <p className="text-sm text-muted-foreground">Buat akun baru dengan activation key</p>
+          <h1 className="text-2xl font-display font-bold text-foreground">Register</h1>
+          <p className="text-sm text-muted-foreground">Create a new account with activation key</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -53,7 +53,7 @@ const RegisterPage = () => {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Pilih username (min 3 karakter)"
+              placeholder="Select a username (min 3 characters)"
               className="w-full h-10 px-3 rounded-lg bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               required
               minLength={3}
@@ -66,19 +66,19 @@ const RegisterPage = () => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Min 6 karakter"
+              placeholder="Min 6 characters"
               className="w-full h-10 px-3 rounded-lg bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               required
               minLength={6}
             />
           </div>
           <div>
-            <label className="text-sm text-muted-foreground mb-1 block">Konfirmasi Password</label>
+            <label className="text-sm text-muted-foreground mb-1 block">Confirm Password</label>
             <input
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Ulangi password"
+              placeholder="Repeat password"
               className="w-full h-10 px-3 rounded-lg bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               required
             />
@@ -96,14 +96,14 @@ const RegisterPage = () => {
               required
             />
             <p className="mt-2 text-xs text-muted-foreground">
-    Tidak dapat key?{" "}
+    Can't get the key?{" "}
     <a 
-      href="https://wa.me/nomor-whatsapp-kamu" 
+      href="https://whatsapp.com/channel/0029VbCGAUm3bbV9AjUZaY0v" 
       target="_blank" 
       rel="noopener noreferrer"
       className="text-primary hover:underline font-medium"
     >
-      Join channel WhatsApp untuk mendapatkan
+      Join WhatsApp channel to get
     </a>
   </p>
           </div>
@@ -113,12 +113,12 @@ const RegisterPage = () => {
             className="w-full h-10 rounded-lg bg-primary text-primary-foreground font-medium flex items-center justify-center gap-2 hover:opacity-90 transition disabled:opacity-50"
           >
             <UserPlus className="w-4 h-4" />
-            {loading ? "Loading..." : "Daftar"}
+            {loading ? "Loading..." : "Register"}
           </button>
         </form>
 
         <p className="text-center text-sm text-muted-foreground">
-          Sudah punya akun?{" "}
+          Already have an account?{" "}
           <Link to="/login" className="text-primary hover:underline">
             Login
           </Link>
