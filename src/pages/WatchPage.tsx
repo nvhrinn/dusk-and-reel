@@ -108,7 +108,7 @@ const WatchPage = () => {
       const n = coupons - 1;
       setCouponsState(n); saveCoupons(n);
       unlockEpisode(epId); setEpisodeUnlocked(true);
-      toast.success("Episode berhasil dibuka");
+      toast.success("Episode successfully opened");
     } else {
       setShowAdDialog(true);
     }
@@ -249,8 +249,8 @@ const WatchPage = () => {
   if (!user) {
     return (
       <div className="min-h-screen pt-14 bg-background flex flex-col items-center justify-center gap-4 px-4">
-        <p className="text-lg font-medium text-foreground">Login untuk menonton anime</p>
-        <p className="text-sm text-muted-foreground">Kamu harus login terlebih dahulu</p>
+        <p className="text-lg font-medium text-foreground">Login to watch anime</p>
+        <p className="text-sm text-muted-foreground">You must login first</p>
         <button
           onClick={() => navigate("/login")}
           className="px-6 py-2.5 rounded-xl bg-primary text-primary-foreground font-medium text-sm"
@@ -274,10 +274,10 @@ const WatchPage = () => {
         {!episodeUnlocked ? (
           <div className="w-full aspect-video rounded-lg bg-secondary flex flex-col items-center justify-center gap-4">
             <Ticket className="w-10 h-10 text-muted-foreground" />
-            <p className="text-foreground font-medium">Gunakan 1 kupon untuk menonton</p>
-            <p className="text-sm text-muted-foreground">Kamu punya {coupons} kupon</p>
+            <p className="text-foreground font-medium">Use 1 coupon to watch</p>
+            <p className="text-sm text-muted-foreground">You have {coupons} coupons</p>
             <button onClick={handleUnlock} className="px-4 py-2 rounded-xl text-sm bg-primary text-primary-foreground font-medium">
-              {coupons > 0 ? "Unlock Episode" : "Tonton Iklan untuk Kupon"}
+              {coupons > 0 ? "Unlock Episode" : "Watch Ads for Coupons"}
             </button>
           </div>
         ) : streamLoading || serversLoading ? (
