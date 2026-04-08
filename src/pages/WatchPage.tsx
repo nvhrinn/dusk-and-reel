@@ -291,20 +291,20 @@ const WatchPage = () => {
             outro={stream.outro}
             onError={handlePlayerError}
           />
+// ... (bagian atas tetap sama sampai VideoPlayer)
 ) : (
   <div className="w-full aspect-video rounded-lg bg-secondary flex flex-col items-center justify-center p-6 text-center gap-2">
     {/* Paksa cek: jika tidak ada source file ATAU memang ada error eksplisit */}
     {(!stream?.sources?.[0]?.file && !stream?.sources?.[0]?.url) || streamError || serversError ? (
       <>
         <p className="text-red-500 font-bold">Server sedang error dari pusat</p>
-        <p className="text-sm text-muted-foreground">Simak channel WhatsApp untuk info lebih lanjut</p>
+        <p className="text-sm text-muted-foreground">Simak channel WhatsApp untuk info lanjut</p>
       </>
     ) : (
-          <div className="w-full aspect-video rounded-lg bg-secondary flex items-center justify-center">
-            <p className="text-muted-foreground">Select a server to start watching</p>
-          )}
-          </div>
-        )}
+      <p className="text-muted-foreground">Select a server to start watching</p>
+    )}
+  </div>
+)}
 
         <AdRewardDialog
           open={showAdDialog}
