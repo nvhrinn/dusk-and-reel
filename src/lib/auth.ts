@@ -10,7 +10,19 @@ export interface User {
 
 async function callAuthApi<T>(body: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase2.functions.invoke("user-auth", { body });
-  if (error) throw new Error(error.message);
+  if (error) {
+    // Try to extract the real error message from the response body
+    try {
+      const ctx = (error as any).context;
+      if (ctx && typeof ctx.json === "function") {
+        const body = await ctx.json();
+        if (body?.error) throw new Error(body.error);
+      }
+    } catch (inner) {
+      if (inner instanceof Error && inner.message !== error.message) throw inner;
+    }
+    throw new Error(error.message);
+  }
   if (data?.error) throw new Error(data.error);
   return data as T;
 }
