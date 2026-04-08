@@ -166,34 +166,35 @@ const ProfilePage = () => {
 
         {/* VIP Activation - only show if not VIP */}
         {!isVip && !isAdmin && (
-          <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5 space-y-3">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-500" />
-              <h2 className="font-bold text-foreground text-sm">Aktivasi VIP</h2>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Masukkan kode VIP 4 digit dari admin untuk nonton tanpa kupon
-            </p>
-            <form onSubmit={handleRedeemVip} className="flex gap-2">
-              <input
-                type="text"
-                maxLength={4}
-                placeholder="0000"
-                value={vipCode}
-                onChange={(e) => setVipCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                className="flex-1 h-10 px-4 rounded-xl bg-secondary text-foreground text-center text-lg tracking-[0.5em] font-mono placeholder:text-muted-foreground placeholder:tracking-[0.5em] focus:outline-none focus:ring-1 focus:ring-amber-500"
-              />
-              <button
-                type="submit"
-                disabled={vipLoading || vipCode.length !== 4}
-                className="h-10 px-4 rounded-xl bg-amber-500 text-white font-medium text-sm disabled:opacity-50"
-              >
-                {vipLoading ? "..." : "Aktifkan"}
-              </button>
-            </form>
-          </div>
-        )}
-
+  <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5 space-y-3">
+    <div className="flex items-center gap-2">
+      <Sparkles className="w-4 h-4 text-amber-500" />
+      <h2 className="font-bold text-foreground text-sm">Aktivasi VIP</h2>
+    </div>
+    <p className="text-xs text-muted-foreground">
+      Masukkan kode VIP 4 digit dari admin untuk nonton tanpa kupon
+    </p>
+    
+    {/* PERBAIKAN: Tambahkan flex-col sm:flex-row agar button pindah ke bawah saat mobile */}
+    <form onSubmit={handleRedeemVip} className="flex flex-col sm:flex-row gap-2">
+      <input
+        type="text"
+        maxLength={4}
+        placeholder="0000"
+        value={vipCode}
+        onChange={(e) => setVipCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
+        className="flex-1 h-10 px-4 rounded-xl bg-secondary text-foreground text-center text-lg tracking-[0.5em] font-mono placeholder:text-muted-foreground placeholder:tracking-[0.5em] focus:outline-none focus:ring-1 focus:ring-amber-500 w-full"
+      />
+      <button
+        type="submit"
+        disabled={vipLoading || vipCode.length !== 4}
+        className="h-10 px-6 rounded-xl bg-amber-500 text-white font-medium text-sm disabled:opacity-50 shrink-0 w-full sm:w-auto"
+      >
+        {vipLoading ? "..." : "Aktifkan"}
+      </button>
+    </form>
+  </div>
+)}
         {/* Change Password */}
         <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
           <h2 className="font-bold text-foreground text-sm">Ganti Password</h2>
