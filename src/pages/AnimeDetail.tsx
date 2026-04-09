@@ -43,6 +43,22 @@ const AnimeDetail = () => {
     );
   }
 
+  if (!user) {
+    return (
+      <div className="min-h-screen pt-14 bg-background flex flex-col items-center justify-center gap-4 px-4">
+        <p className="text-lg font-medium text-foreground">Login to watch anime</p>
+        <p className="text-sm text-muted-foreground">You must login first</p>
+        <button
+          onClick={() => navigate("/login")}
+          className="px-6 py-2.5 rounded-xl bg-primary text-primary-foreground font-medium text-sm"
+        >
+          Login
+        </button>
+      </div>
+    );
+  }
+  
+
   if (!info) {
     return (
       <div className="min-h-screen pt-14 flex items-center justify-center">
