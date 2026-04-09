@@ -32,7 +32,7 @@ const AdRewardDialog = ({
 
     localStorage.setItem("coupons", String(newCoupons));
     onReward();
-    toast.success("+1 Kupon didapat!");
+    toast.success("+1 Coupon obtained!");
   };
 
   const startAd = () => {
@@ -40,7 +40,7 @@ const AdRewardDialog = ({
 
     pickRandomAd();
     setWatching(true);
-    setCountdown(15);
+    setCountdown(30);
 
     const interval = setInterval(() => {
       setCountdown((c) => {
@@ -71,10 +71,10 @@ const AdRewardDialog = ({
           <div className="text-center space-y-4">
             <Ticket className="w-10 h-10 text-primary mx-auto" />
 
-            <h3 className="font-bold text-lg">Kupon Habis!</h3>
+            <h3 className="font-bold text-lg">Coupon Expired!</h3>
 
             <p className="text-sm text-muted-foreground">
-              Tonton iklan untuk mendapatkan 1 kupon
+              Watch ads to get 1 coupon
             </p>
 
             <div className="flex gap-2 justify-center">
@@ -90,7 +90,7 @@ const AdRewardDialog = ({
                 className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm flex items-center gap-1"
               >
                 <Play className="w-4 h-4" />
-                Tonton Iklan
+                Watch Ads
               </button>
             </div>
           </div>
@@ -107,7 +107,7 @@ const AdRewardDialog = ({
             />
 
             <p className="text-xs text-muted-foreground">
-              Tunggu {countdown} detik...
+              Wait {countdown} second...
             </p>
 
           </div>
