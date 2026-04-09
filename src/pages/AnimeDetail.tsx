@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Play, ArrowLeft, Subtitles, Mic, Clock, Film } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const AnimeDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [showFullDesc, setShowFullDesc] = useState(false);
 
   const { data: info, isLoading: infoLoading } = useQuery({
