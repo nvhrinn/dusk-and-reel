@@ -167,7 +167,15 @@ const AdminPage = () => {
       <div className="container mx-auto max-w-2xl">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-xl font-display font-bold text-foreground">Admin Panel</h1>
-          <button onClick={() => setAdminUser(null) localStorage.removeItem("admin_session")} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition">Logout</button>
+          <button
+  onClick={() => {
+    setAdminUser(null);
+    localStorage.removeItem("admin_session"); // ✅ hapus session
+  }}
+  className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition"
+>
+  Logout
+</button>
         </div>
 
         {/* Tabs */}
