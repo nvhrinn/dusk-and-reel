@@ -35,6 +35,7 @@ const AdminPage = () => {
         return;
       }
       setAdminUser(user);
+      localStorage.setItem("admin_session", JSON.stringify(user));
       toast.success("Login admin berhasil!");
     } catch (err: any) {
       toast.error(err.message || "Login gagal");
@@ -80,6 +81,18 @@ const AdminPage = () => {
       loadVipCodes();
     }
   }, [adminUser]);
+
+  useEffect(() => {
+  const saved = localStorage.getItem("admin_session");
+  if (saved) {
+    try {
+      const user = JSON.parse(saved);
+      setAdminUser(user);
+    } catch {
+      localStorage.removeItem("admin_session");
+    }
+  }
+}, []);
 
   const handleGenerate = async () => {
     if (!adminUser) return;
@@ -154,7 +167,7 @@ const AdminPage = () => {
       <div className="container mx-auto max-w-2xl">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-xl font-display font-bold text-foreground">Admin Panel</h1>
-          <button onClick={() => setAdminUser(null)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition">Logout</button>
+          <button onClick={() => setAdminUser(null) localStorage.removeItem("admin_session")} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition">Logout</button>
         </div>
 
         {/* Tabs */}
