@@ -22,6 +22,7 @@ import RegisterPage from "./pages/RegisterPage";
 import AdminPage from "./pages/AdminPage";
 import ProfilePage from "./pages/ProfilePage";
 import JoinWhatsAppPopup from "@/components/waPopup";
+import AnimeSchedule from "./pages/AnimeSchedule";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -58,6 +59,7 @@ const App = () => (
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/schedule" element={<AnimeSchedule />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
