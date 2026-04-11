@@ -397,10 +397,10 @@ const AnimeSchedule = () => {
           </div>
         )}
 
-<div className="mb-5 flex items-center justify-between rounded-xl border border-yellow-500/20 bg-gradient-to-r from-yellow-500/10 to-transparent px-4 py-3 backdrop-blur-sm">
+<div className="mb-5 mt-5 flex items-center justify-between rounded-xl border border-yellow-500/20 bg-gradient-to-r from-yellow-500/10 to-transparent px-4 py-3 backdrop-blur-sm">
   
   {/* LEFT */}
-  <div className="flex items-center gap-3 text-xs text-yellow-600">
+  <div className="flex items-center gap-2 text-xs text-yellow-600">
     <Info className="w-4 h-4 opacity-80" />
     <p>
       Jadwal dapat berubah sewaktu-waktu • Data dari{" "}
