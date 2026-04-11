@@ -403,7 +403,7 @@ const AnimeSchedule = () => {
   <div className="flex items-center gap-2 text-xs text-yellow-600">
     <Info className="w-4 h-4 opacity-80" />
     <p>
-      Jadwal dapat berubah sewaktu-waktu • Data dari{" "}
+      Jadwal dapat berubah sewaktu-waktu. Informasi mungkin tidak sepenuhnya akurat karena bersumber dari {" "}
       <a
         href="https://anilist.co"
         target="_blank"
