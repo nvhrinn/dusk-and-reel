@@ -397,7 +397,7 @@ const AnimeSchedule = () => {
           </div>
         )}
 
-<div className="mb-5 mt-5 flex items-center justify-between rounded-xl border border-yellow-500/20 bg-gradient-to-r from-yellow-500/10 to-transparent px-4 py-3 backdrop-blur-sm">
+<div className="mb-5 mt-3 flex items-center justify-between rounded-xl border border-yellow-500/20 bg-gradient-to-r from-yellow-500/10 to-transparent px-4 py-3 backdrop-blur-sm">
   
   {/* LEFT */}
   <div className="flex items-center gap-2 text-xs text-yellow-600">
