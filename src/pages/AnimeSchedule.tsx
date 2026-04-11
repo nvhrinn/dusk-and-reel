@@ -7,6 +7,98 @@ import { useState, useEffect } from "react";
 
 /* ================= HELPERS ================= */
 
+async function fetchAllWeek() {
+  let page = 1;
+  let hasNextPage = true;
+  let results: any[] = [];
+
+  const { from, to } = getWeekRange();
+
+  while (hasNextPage) {
+    const res = await fetch("https://graphql.anilist.co", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: `
+        query ($page: Int, $from: Int, $to: Int) {
+          Page(page: $page, perPage: 50) {
+            pageInfo {
+              hasNextPage
+            }
+            airingSchedules(
+              airingAt_greater: $from
+              airingAt_lesser: $to
+              sort: TIME
+            ) {
+              airingAt
+              episode
+              media {
+                id
+                title { romaji english }
+                coverImage { extraLarge large }
+                genres
+                averageScore
+                format
+              }
+            }
+          }
+        }`,
+        variables: { page, from, to },
+      }),
+    });
+
+    const json = await res.json();
+
+    const pageData = json?.data?.Page;
+    if (!pageData) break;
+
+    results.push(...pageData.airingSchedules);
+
+    hasNextPage = pageData.pageInfo.hasNextPage;
+    page++;
+  }
+
+  // 🔥 REMOVE DUPLICATE
+  const map = new Map();
+
+  results.forEach((item: any) => {
+    const id = item.media.id;
+
+    if (!map.has(id) || map.get(id).airingAt > item.airingAt) {
+      map.set(id, item);
+    }
+  });
+
+  return Array.from(map.values())
+    .map((item: any) => ({
+      id: item.media.id,
+      title: item.media.title.romaji || item.media.title.english,
+      image:
+        item.media.coverImage.extraLarge ||
+        item.media.coverImage.large,
+      episode: item.episode,
+      airingAt: item.airingAt,
+      time: new Date(item.airingAt * 1000).toLocaleTimeString("id-ID", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      score: item.media.averageScore,
+      genres: item.media.genres,
+      format: item.media.format,
+    }))
+    .sort((a, b) => {
+      const now = Date.now();
+      const aAired = a.airingAt * 1000 <= now;
+      const bAired = b.airingAt * 1000 <= now;
+
+      if (aAired !== bAired) return aAired ? 1 : -1;
+      if (!aAired) return a.airingAt - b.airingAt;
+      return b.airingAt - a.airingAt;
+    });
+}
+
 function getDayRange(dayIndex: number) {
   const now = new Date();
 
@@ -75,6 +167,7 @@ async function fetchAnimeSchedule(mode: string, selectedDay: number) {
   let query = "";
   let variables: any = {};
 
+  // ✅ SEASON
   if (mode === "season") {
     query = `
     query ($season: MediaSeason, $year: Int) {
@@ -94,11 +187,16 @@ async function fetchAnimeSchedule(mode: string, selectedDay: number) {
       season: getCurrentSeason(),
       year: new Date().getFullYear(),
     };
-  } else {
-    const range =
-      mode === "all"
-        ? getWeekRange()
-        : getDayRange(selectedDay);
+  }
+
+  // 🔥 FIX ALL WEEK (WAJIB PAGINATION)
+  else if (mode === "all") {
+    return await fetchAllWeek(); // ⬅️ INI KUNCI NYA
+  }
+
+  // ✅ DAY
+  else {
+    const { from, to } = getDayRange(selectedDay);
 
     query = `
     query ($from: Int, $to: Int) {
@@ -122,7 +220,7 @@ async function fetchAnimeSchedule(mode: string, selectedDay: number) {
       }
     }`;
 
-    variables = range;
+    variables = { from, to };
   }
 
   const res = await fetch("https://graphql.anilist.co", {
@@ -133,6 +231,7 @@ async function fetchAnimeSchedule(mode: string, selectedDay: number) {
 
   const json = await res.json();
 
+  // ✅ SEASON RETURN
   if (mode === "season") {
     return json.data.Page.media.map((m: any) => ({
       id: m.id,
@@ -173,24 +272,15 @@ async function fetchAnimeSchedule(mode: string, selectedDay: number) {
       format: item.media.format,
     }))
     .sort((a, b) => {
-  const now = Date.now();
+      const now = Date.now();
 
-  const aAired = a.airingAt * 1000 <= now;
-  const bAired = b.airingAt * 1000 <= now;
+      const aAired = a.airingAt * 1000 <= now;
+      const bAired = b.airingAt * 1000 <= now;
 
-  // 🔥 upcoming di atas
-  if (aAired !== bAired) {
-    return aAired ? 1 : -1;
-  }
-
-  // 🔥 kalau sama-sama upcoming → paling dekat dulu
-  if (!aAired) {
-    return a.airingAt - b.airingAt;
-  }
-
-  // 🔥 kalau sama-sama aired → terbaru di atas (reverse)
-  return b.airingAt - a.airingAt;
-});
+      if (aAired !== bAired) return aAired ? 1 : -1;
+      if (!aAired) return a.airingAt - b.airingAt;
+      return b.airingAt - a.airingAt;
+    });
 }
 
 /* ================= COMPONENT ================= */
