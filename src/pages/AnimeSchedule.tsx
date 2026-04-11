@@ -397,8 +397,6 @@ const AnimeSchedule = () => {
           </div>
         )}
 
-        import { Info } from "lucide-react";
-
 <div className="mb-5 flex items-center justify-between rounded-xl border border-yellow-500/20 bg-gradient-to-r from-yellow-500/10 to-transparent px-4 py-3 backdrop-blur-sm">
   
   {/* LEFT */}
