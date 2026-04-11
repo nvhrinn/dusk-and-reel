@@ -285,7 +285,7 @@ async function fetchAnimeSchedule(mode: string, selectedDay: number) {
 
 /* ================= COMPONENT ================= */
 
-const days = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+const days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 
 const AnimeSchedule = () => {
   const navigate = useNavigate();
