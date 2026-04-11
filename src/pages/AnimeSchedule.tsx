@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Clock, Star } from "lucide-react";
+import { ArrowLeft, Clock, Star, Radio } from "lucide-react";
 import { useState, useEffect } from "react";
 
 /* ================= HELPERS ================= */
@@ -310,8 +310,11 @@ const AnimeSchedule = () => {
         {/* NOW AIRING */}
         {mode !== "season" && nowAiring?.length > 0 && (
           <div className="mt-6">
-            <h2 className="text-red-500 font-bold mb-2">🔴 Now Airing</h2>
-            <div className="flex gap-3 overflow-x-auto">
+            <h2 className="flex items-center gap-2 text-red-500 font-bold mb-2">
+  <Radio className="w-4 h-4 animate-pulse" />
+  Now Airing
+</h2>
+             <div className="flex gap-3 overflow-x-auto">
               {nowAiring.map((a: any) => (
                 <div key={a.id} className="w-40 shrink-0">
                   <img src={a.image} className="rounded-lg h-52 w-full object-cover" />
