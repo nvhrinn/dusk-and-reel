@@ -5,7 +5,7 @@ import { aniwatchApi, AnimeSearchResult } from "@/lib/api";
 import HeroSlider from "@/components/HeroSlider";
 import AnimeCard from "@/components/AnimeCard";
 import { SkeletonGrid, SkeletonHero } from "@/components/Skeletons";
-import { TrendingUp, Clock, Flame, Star, Calendar, Sparkles, Film, Layers } from "lucide-react";
+import { TrendingUp, Clock, Flame, Star, Calendar, Sparkles, Film, Layers, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 function shuffle<T>(arr: T[]): T[] {
@@ -94,6 +94,16 @@ const Index = () => {
       onClick={() => navigate("/movie")}
     >
       <Film className="w-4 h-4" /> Movie
+    </Button>
+    <Button
+      className="gap-2 text-white border-0 
+                 bg-gradient-to-r from-purple-500 via-pink-500 to-red-500
+                 shadow-lg shadow-pink-500/20
+                 hover:scale-105 hover:shadow-pink-500/40
+                 transition-all duration-200 active:scale-90"
+      onClick={() => navigate("/schedule")}
+    >
+      <Calendar className="w-4 h-4" /> Schedule
     </Button>
   </div>
 </div>
