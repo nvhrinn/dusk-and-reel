@@ -172,7 +172,25 @@ async function fetchAnimeSchedule(mode: string, selectedDay: number) {
       genres: item.media.genres,
       format: item.media.format,
     }))
-    .sort((a, b) => a.airingAt - b.airingAt);
+    .sort((a, b) => {
+  const now = Date.now();
+
+  const aAired = a.airingAt * 1000 <= now;
+  const bAired = b.airingAt * 1000 <= now;
+
+  // 🔥 upcoming di atas
+  if (aAired !== bAired) {
+    return aAired ? 1 : -1;
+  }
+
+  // 🔥 kalau sama-sama upcoming → paling dekat dulu
+  if (!aAired) {
+    return a.airingAt - b.airingAt;
+  }
+
+  // 🔥 kalau sama-sama aired → terbaru di atas (reverse)
+  return b.airingAt - a.airingAt;
+});
 }
 
 /* ================= COMPONENT ================= */
@@ -323,10 +341,18 @@ const AnimeSchedule = () => {
               )}
 
               {anime.airingAt && (
-                <div className="text-[11px] text-primary">
-                  {getCountdown(anime.airingAt)}
-                </div>
-              )}
+  <div
+    className={`text-[11px] ${
+      anime.airingAt * 1000 <= Date.now()
+        ? "text-muted-foreground"
+        : "text-primary"
+    }`}
+  >
+    {anime.airingAt * 1000 <= Date.now()
+      ? "Aired"
+      : getCountdown(anime.airingAt)}
+  </div>
+)}
 
               <div className="text-xs mt-1 flex gap-2">
                 {anime.episode && <span>Ep {anime.episode}</span>}
