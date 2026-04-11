@@ -49,6 +49,12 @@ function getCurrentSeason() {
   return "FALL";
 }
 
+// 🔥 format text season biar bagus
+function formatSeason(season: string) {
+  return season.charAt(0) + season.slice(1).toLowerCase();
+}
+
+// 🔥 countdown
 function getCountdown(timestamp: number) {
   const now = Date.now();
   const diff = timestamp * 1000 - now;
@@ -59,6 +65,13 @@ function getCountdown(timestamp: number) {
   const m = Math.floor((diff / 1000 / 60) % 60);
 
   return `${h}h ${m}m`;
+}
+
+// 🔥 cek now airing (±30 menit)
+function isNowAiring(timestamp: number) {
+  const now = Date.now();
+  const diff = timestamp * 1000 - now;
+  return diff <= 0 && diff > -30 * 60 * 1000;
 }
 
 /* ================= FETCH ================= */
@@ -154,25 +167,15 @@ async function fetchAnimeSchedule(mode: string, offset: number) {
 
 /* ================= COMPONENT ================= */
 
-const days = [
-  "Minggu",
-  "Senin",
-  "Selasa",
-  "Rabu",
-  "Kamis",
-  "Jumat",
-  "Sabtu",
-];
+const days = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
 
 const AnimeSchedule = () => {
   const navigate = useNavigate();
 
   const today = new Date().getDay();
-
   const [selectedDay, setSelectedDay] = useState(today);
   const [mode, setMode] = useState<"day" | "all" | "season">("day");
 
-  // 🔥 rerender countdown tiap detik
   const [, setTick] = useState(0);
   useEffect(() => {
     const i = setInterval(() => setTick((t) => t + 1), 1000);
@@ -187,69 +190,59 @@ const AnimeSchedule = () => {
     refetchInterval: 60000,
   });
 
-  /* ================= LOADING ================= */
-
   if (isLoading) {
     return (
-      <div className="min-h-screen pt-14">
-        <div className="container mx-auto px-4 py-8 grid grid-cols-2 md:grid-cols-4 gap-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <Skeleton key={i} className="h-64 rounded-xl" />
-          ))}
-        </div>
+      <div className="min-h-screen pt-14 flex justify-center items-center">
+        <Skeleton className="w-40 h-40" />
       </div>
     );
   }
 
-  /* ================= UI ================= */
+  // 🔥 NOW AIRING
+  const nowAiring = data?.filter((a: any) =>
+    a.airingAt ? isNowAiring(a.airingAt) : false
+  );
 
   return (
     <div className="min-h-screen pt-14">
       <div className="container mx-auto px-4 py-6">
-        {/* BACK */}
         <button
           onClick={() => navigate("/")}
-          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4"
+          className="flex items-center gap-1 text-sm text-muted-foreground mb-4"
         >
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
 
-        <h1 className="font-display text-2xl font-bold mb-4">
-          Anime Schedule
-        </h1>
+        <h1 className="font-bold text-2xl mb-4">Anime Schedule</h1>
 
-        {/* MODE FILTER */}
+        {/* MODE */}
         <div className="flex gap-2 mb-4">
           {["day", "all", "season"].map((m) => (
             <button
               key={m}
               onClick={() => setMode(m as any)}
               className={`px-3 py-1.5 rounded-xl text-sm ${
-                mode === m
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted hover:bg-accent"
+                mode === m ? "bg-primary text-white" : "bg-muted"
               }`}
             >
               {m === "day"
                 ? "Day"
                 : m === "all"
                 ? "All Week"
-                : "Season"}
+                : formatSeason(getCurrentSeason())}
             </button>
           ))}
         </div>
 
-        {/* DAY FILTER */}
+        {/* DAY */}
         {mode === "day" && (
-          <div className="flex gap-2 overflow-x-auto pb-2">
+          <div className="flex gap-2 overflow-x-auto">
             {days.map((d, i) => (
               <button
                 key={i}
                 onClick={() => setSelectedDay(i)}
-                className={`px-3 py-1.5 rounded-xl text-sm whitespace-nowrap ${
-                  selectedDay === i
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted hover:bg-accent"
+                className={`px-3 py-1 rounded ${
+                  selectedDay === i ? "bg-primary text-white" : "bg-muted"
                 }`}
               >
                 {d}
@@ -257,42 +250,55 @@ const AnimeSchedule = () => {
             ))}
           </div>
         )}
+
+        {/* 🔥 NOW AIRING */}
+        {mode !== "season" && nowAiring?.length > 0 && (
+          <div className="mt-6">
+            <h2 className="text-lg font-bold mb-3 text-red-500">
+              🔴 Now Airing
+            </h2>
+
+            <div className="flex gap-3 overflow-x-auto">
+              {nowAiring.map((anime: any) => (
+                <div key={anime.id} className="w-40 shrink-0">
+                  <img
+                    src={anime.image}
+                    className="w-full h-52 object-cover rounded-lg"
+                  />
+                  <p className="text-xs mt-1 line-clamp-2">
+                    {anime.title}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* LIST */}
-      <div className="container mx-auto px-4 pb-10 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+      <div className="container mx-auto px-4 pb-10 grid grid-cols-2 md:grid-cols-5 gap-4">
         {data?.map((anime: any) => (
-          <div
-            key={anime.id}
-            className="rounded-xl overflow-hidden bg-card border hover:scale-[1.02] transition-all"
-          >
-            <img
-              src={anime.image}
-              className="w-full h-56 object-cover"
-            />
+          <div key={anime.id} className="bg-card rounded-xl overflow-hidden">
+            <img src={anime.image} className="w-full h-56 object-cover" />
 
-            <div className="p-3">
-              <h2 className="text-sm font-semibold line-clamp-2">
+            <div className="p-2">
+              <p className="text-sm font-semibold line-clamp-2">
                 {anime.title}
-              </h2>
+              </p>
 
-              {/* TIME */}
               {anime.time && (
-                <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                  <Clock className="w-3 h-3" />
-                  {anime.time}
+                <div className="text-xs flex items-center gap-1 mt-1">
+                  <Clock className="w-3 h-3" /> {anime.time}
                 </div>
               )}
 
-              {/* COUNTDOWN */}
               {anime.airingAt && (
-                <div className="text-[11px] text-primary mt-1">
+                <div className="text-[11px] text-primary">
                   {getCountdown(anime.airingAt)}
                 </div>
               )}
 
-              {/* EP + SCORE */}
-              <div className="flex items-center gap-2 mt-1 text-xs">
+              <div className="text-xs mt-1 flex gap-2">
                 {anime.episode && <span>Ep {anime.episode}</span>}
                 {anime.score && (
                   <span className="flex items-center gap-1">
@@ -300,17 +306,6 @@ const AnimeSchedule = () => {
                   </span>
                 )}
               </div>
-
-              {/* GENRES */}
-              {anime.genres?.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {anime.genres.slice(0, 2).map((g: string) => (
-                    <Badge key={g} className="text-[10px]">
-                      {g}
-                    </Badge>
-                  ))}
-                </div>
-              )}
             </div>
           </div>
         ))}
