@@ -191,12 +191,32 @@ const AnimeSchedule = () => {
   });
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen pt-14 flex justify-center items-center">
-        <Skeleton className="w-40 h-40" />
+  return (
+    <div className="min-h-screen pt-14">
+      <div className="container mx-auto px-4 py-6">
+        <Skeleton className="h-6 w-40 mb-4" />
+
+        <div className="flex gap-2 mb-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-8 w-20 rounded-xl" />
+          ))}
+        </div>
+
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <Skeleton key={i} className="h-8 w-16 rounded-xl" />
+          ))}
+        </div>
       </div>
-    );
-  }
+
+      <div className="container mx-auto px-4 pb-10 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        {Array.from({ length: 10 }).map((_, i) => (
+          <Skeleton key={i} className="h-64 rounded-xl" />
+        ))}
+      </div>
+    </div>
+  );
+}
 
   // 🔥 NOW AIRING
   const nowAiring = data?.filter((a: any) =>
@@ -217,39 +237,43 @@ const AnimeSchedule = () => {
 
         {/* MODE */}
         <div className="flex gap-2 mb-4">
-          {["day", "all", "season"].map((m) => (
-            <button
-              key={m}
-              onClick={() => setMode(m as any)}
-              className={`px-3 py-1.5 rounded-xl text-sm ${
-                mode === m ? "bg-primary text-white" : "bg-muted"
-              }`}
-            >
-              {m === "day"
-                ? "Day"
-                : m === "all"
-                ? "All Week"
-                : formatSeason(getCurrentSeason())}
-            </button>
-          ))}
-        </div>
+  {[
+    { key: "day", label: "Day" },
+    { key: "all", label: "All Week" },
+    { key: "season", label: formatSeason(getCurrentSeason()) },
+  ].map((m) => (
+    <button
+      key={m.key}
+      onClick={() => setMode(m.key as any)}
+      className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-all ${
+        mode === m.key
+          ? "bg-primary text-primary-foreground shadow"
+          : "bg-muted hover:bg-accent"
+      }`}
+    >
+      {m.label}
+    </button>
+  ))}
+</div>
 
         {/* DAY */}
         {mode === "day" && (
-          <div className="flex gap-2 overflow-x-auto">
-            {days.map((d, i) => (
-              <button
-                key={i}
-                onClick={() => setSelectedDay(i)}
-                className={`px-3 py-1 rounded ${
-                  selectedDay === i ? "bg-primary text-white" : "bg-muted"
-                }`}
-              >
-                {d}
-              </button>
-            ))}
-          </div>
-        )}
+  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+    {days.map((d, i) => (
+      <button
+        key={i}
+        onClick={() => setSelectedDay(i)}
+        className={`px-4 py-1.5 rounded-xl text-sm whitespace-nowrap transition-all ${
+          selectedDay === i
+            ? "bg-primary text-primary-foreground shadow"
+            : "bg-muted hover:bg-accent"
+        }`}
+      >
+        {d}
+      </button>
+    ))}
+  </div>
+)}
 
         {/* 🔥 NOW AIRING */}
         {mode !== "season" && nowAiring?.length > 0 && (
