@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Clock, Star, Radio } from "lucide-react";
+import { ArrowLeft, Clock, Star, Radio, Info } from "lucide-react";
 import { useState, useEffect } from "react";
 
 /* ================= HELPERS ================= */
@@ -396,6 +396,27 @@ const AnimeSchedule = () => {
             ))}
           </div>
         )}
+
+        import { Info } from "lucide-react";
+
+<div className="mb-5 flex items-center justify-between rounded-xl border border-yellow-500/20 bg-gradient-to-r from-yellow-500/10 to-transparent px-4 py-3 backdrop-blur-sm">
+  
+  {/* LEFT */}
+  <div className="flex items-center gap-2 text-xs text-yellow-600">
+    <Info className="w-4 h-4 opacity-80" />
+    <p>
+      Jadwal dapat berubah sewaktu-waktu • Data dari{" "}
+      <a
+        href="https://anilist.co"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="underline hover:text-yellow-500"
+      >
+        AniList
+      </a>
+    </p>
+  </div>
+</div>
 
         {/* NOW AIRING */}
         {mode !== "season" && nowAiring?.length > 0 && (
