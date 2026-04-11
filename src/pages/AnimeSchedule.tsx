@@ -310,8 +310,8 @@ const AnimeSchedule = () => {
         {/* NOW AIRING */}
         {mode !== "season" && nowAiring?.length > 0 && (
           <div className="mt-6">
-            <h2 className="flex items-center gap-2 text-red-500 font-bold mb-2">
-  <Radio className="w-4 h-4 animate-pulse" />
+            <h2 className="flex items-center gap-2 text-xl font-bold mb-2">
+  <Radio className="w-4 h-4 animate-pulse text-primary" />
   Now Airing
 </h2>
              <div className="flex gap-3 overflow-x-auto">
