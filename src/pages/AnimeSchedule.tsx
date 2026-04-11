@@ -1,0 +1,322 @@
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ArrowLeft, Clock, Star } from "lucide-react";
+import { useState, useEffect } from "react";
+
+/* ================= HELPERS ================= */
+
+function getDayRange(offset: number) {
+  const now = new Date();
+  now.setDate(now.getDate() + offset);
+
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(now);
+  end.setHours(23, 59, 59, 999);
+
+  return {
+    from: Math.floor(start.getTime() / 1000),
+    to: Math.floor(end.getTime() / 1000),
+  };
+}
+
+function getWeekRange() {
+  const now = new Date();
+
+  const start = new Date(now);
+  start.setDate(now.getDate() - now.getDay());
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  end.setHours(23, 59, 59, 999);
+
+  return {
+    from: Math.floor(start.getTime() / 1000),
+    to: Math.floor(end.getTime() / 1000),
+  };
+}
+
+function getCurrentSeason() {
+  const month = new Date().getMonth() + 1;
+
+  if (month <= 3) return "WINTER";
+  if (month <= 6) return "SPRING";
+  if (month <= 9) return "SUMMER";
+  return "FALL";
+}
+
+function getCountdown(timestamp: number) {
+  const now = Date.now();
+  const diff = timestamp * 1000 - now;
+
+  if (diff <= 0) return "Aired";
+
+  const h = Math.floor(diff / 1000 / 60 / 60);
+  const m = Math.floor((diff / 1000 / 60) % 60);
+
+  return `${h}h ${m}m`;
+}
+
+/* ================= FETCH ================= */
+
+async function fetchAnimeSchedule(mode: string, offset: number) {
+  let variables: any = {};
+  let query = "";
+
+  if (mode === "season") {
+    query = `
+    query ($season: MediaSeason, $year: Int) {
+      Page(perPage: 50) {
+        media(season: $season, seasonYear: $year, type: ANIME) {
+          id
+          title { romaji english }
+          coverImage { extraLarge large }
+          genres
+          averageScore
+          format
+        }
+      }
+    }`;
+
+    variables = {
+      season: getCurrentSeason(),
+      year: new Date().getFullYear(),
+    };
+  } else {
+    const range =
+      mode === "all" ? getWeekRange() : getDayRange(offset);
+
+    query = `
+    query ($from: Int, $to: Int) {
+      Page(perPage: 50) {
+        airingSchedules(
+          airingAt_greater: $from
+          airingAt_lesser: $to
+          sort: TIME
+        ) {
+          airingAt
+          episode
+          media {
+            id
+            title { romaji english }
+            coverImage { extraLarge large }
+            genres
+            averageScore
+            format
+          }
+        }
+      }
+    }`;
+
+    variables = range;
+  }
+
+  const res = await fetch("https://graphql.anilist.co", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query, variables }),
+  });
+
+  const json = await res.json();
+
+  if (mode === "season") {
+    return json.data.Page.media.map((m: any) => ({
+      id: m.id,
+      title: m.title.romaji || m.title.english,
+      image: m.coverImage.extraLarge || m.coverImage.large,
+      genres: m.genres,
+      score: m.averageScore,
+      format: m.format,
+    }));
+  }
+
+  return json.data.Page.airingSchedules.map((item: any) => ({
+    id: item.media.id,
+    title: item.media.title.romaji || item.media.title.english,
+    image:
+      item.media.coverImage.extraLarge ||
+      item.media.coverImage.large,
+    episode: item.episode,
+    airingAt: item.airingAt,
+    time: new Date(item.airingAt * 1000).toLocaleTimeString("id-ID", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+    score: item.media.averageScore,
+    genres: item.media.genres,
+    format: item.media.format,
+  }));
+}
+
+/* ================= COMPONENT ================= */
+
+const days = [
+  "Minggu",
+  "Senin",
+  "Selasa",
+  "Rabu",
+  "Kamis",
+  "Jumat",
+  "Sabtu",
+];
+
+const AnimeSchedule = () => {
+  const navigate = useNavigate();
+
+  const today = new Date().getDay();
+
+  const [selectedDay, setSelectedDay] = useState(today);
+  const [mode, setMode] = useState<"day" | "all" | "season">("day");
+
+  // 🔥 rerender countdown tiap detik
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const i = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(i);
+  }, []);
+
+  const offset = selectedDay - today;
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["schedule", mode, offset],
+    queryFn: () => fetchAnimeSchedule(mode, offset),
+    refetchInterval: 60000,
+  });
+
+  /* ================= LOADING ================= */
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen pt-14">
+        <div className="container mx-auto px-4 py-8 grid grid-cols-2 md:grid-cols-4 gap-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton key={i} className="h-64 rounded-xl" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  /* ================= UI ================= */
+
+  return (
+    <div className="min-h-screen pt-14">
+      <div className="container mx-auto px-4 py-6">
+        {/* BACK */}
+        <button
+          onClick={() => navigate("/")}
+          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back
+        </button>
+
+        <h1 className="font-display text-2xl font-bold mb-4">
+          Anime Schedule
+        </h1>
+
+        {/* MODE FILTER */}
+        <div className="flex gap-2 mb-4">
+          {["day", "all", "season"].map((m) => (
+            <button
+              key={m}
+              onClick={() => setMode(m as any)}
+              className={`px-3 py-1.5 rounded-xl text-sm ${
+                mode === m
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted hover:bg-accent"
+              }`}
+            >
+              {m === "day"
+                ? "Day"
+                : m === "all"
+                ? "All Week"
+                : "Season"}
+            </button>
+          ))}
+        </div>
+
+        {/* DAY FILTER */}
+        {mode === "day" && (
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            {days.map((d, i) => (
+              <button
+                key={i}
+                onClick={() => setSelectedDay(i)}
+                className={`px-3 py-1.5 rounded-xl text-sm whitespace-nowrap ${
+                  selectedDay === i
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted hover:bg-accent"
+                }`}
+              >
+                {d}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* LIST */}
+      <div className="container mx-auto px-4 pb-10 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        {data?.map((anime: any) => (
+          <div
+            key={anime.id}
+            className="rounded-xl overflow-hidden bg-card border hover:scale-[1.02] transition-all"
+          >
+            <img
+              src={anime.image}
+              className="w-full h-56 object-cover"
+            />
+
+            <div className="p-3">
+              <h2 className="text-sm font-semibold line-clamp-2">
+                {anime.title}
+              </h2>
+
+              {/* TIME */}
+              {anime.time && (
+                <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                  <Clock className="w-3 h-3" />
+                  {anime.time}
+                </div>
+              )}
+
+              {/* COUNTDOWN */}
+              {anime.airingAt && (
+                <div className="text-[11px] text-primary mt-1">
+                  {getCountdown(anime.airingAt)}
+                </div>
+              )}
+
+              {/* EP + SCORE */}
+              <div className="flex items-center gap-2 mt-1 text-xs">
+                {anime.episode && <span>Ep {anime.episode}</span>}
+                {anime.score && (
+                  <span className="flex items-center gap-1">
+                    <Star className="w-3 h-3" /> {anime.score}
+                  </span>
+                )}
+              </div>
+
+              {/* GENRES */}
+              {anime.genres?.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {anime.genres.slice(0, 2).map((g: string) => (
+                    <Badge key={g} className="text-[10px]">
+                      {g}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default AnimeSchedule;
