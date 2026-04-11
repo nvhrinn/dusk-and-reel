@@ -348,7 +348,7 @@ const AnimeSchedule = () => {
     className={`text-[11px] ${
       anime.airingAt * 1000 <= Date.now()
         ? "text-muted-foreground"
-        : "text-primary"
+        : "text-red-500"
     }`}
   >
     {anime.airingAt * 1000 <= Date.now()
