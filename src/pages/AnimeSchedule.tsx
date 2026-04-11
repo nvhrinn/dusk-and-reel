@@ -427,17 +427,17 @@ const AnimeSchedule = () => {
                 {anime.title}
               </p>
 
-              {anime.time && (
-                <div className="text-xs flex items-center gap-1 mt-1">
-                  <Clock className="w-3 h-3" /> {anime.time}
-                </div>
-              )}
+              {mode !== "all" && anime.time && (
+  <div className="text-xs flex items-center gap-1 mt-1">
+    <Clock className="w-3 h-3" /> {anime.time}
+  </div>
+)}
 
-              {anime.airingAt && (
+{mode !== "all" && anime.airingAt && (
   <div
     className={`text-[11px] ${
       anime.airingAt * 1000 <= Date.now()
-        ? "text-red-500"
+        ? "text-muted-foreground"
         : "text-primary"
     }`}
   >
