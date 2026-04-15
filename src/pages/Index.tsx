@@ -96,16 +96,16 @@ const Index = () => {
       <Film className="w-4 h-4" /> Movie
     </Button>
     <Button
-  className="gap-2 text-white border-0
-             bg-gradient-to-r from-purple-600 to-pink-600
-             px-4 py-2 rounded-lg
-             shadow-md shadow-pink-600/20
+  className="relative gap-2 text-white border border-neutral-800
+             bg-neutral-900 px-4 py-2 rounded-lg
+             overflow-hidden
              transition-all duration-200
-             hover:from-purple-700 hover:to-pink-700
-             hover:shadow-lg hover:shadow-pink-600/30
+             hover:border-purple-500 hover:bg-neutral-800
              active:scale-95"
   onClick={() => navigate("/schedule")}
 >
+  <span className="absolute left-0 top-0 h-full w-1 bg-purple-500 transition-all duration-200 group-hover:w-2"></span>
+
   <Calendar className="w-4 h-4" />
   <span className="font-medium">Schedule</span>
 </Button>
