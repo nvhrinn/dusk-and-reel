@@ -96,13 +96,14 @@ const Index = () => {
       <Film className="w-4 h-4" /> Movie
     </Button>
     <Button
-  className="group gap-2 text-white border border-white/10
-             bg-white/5 backdrop-blur-xl
-             px-4 py-2 rounded-xl
-             hover:bg-white/10
-             shadow-lg shadow-black/30
-             transition-all duration-300
-             hover:scale-105 active:scale-95"
+  className="gap-2 text-white border-0
+             bg-gradient-to-r from-purple-600 to-pink-600
+             px-4 py-2 rounded-lg
+             shadow-md shadow-pink-600/20
+             transition-all duration-200
+             hover:from-purple-700 hover:to-pink-700
+             hover:shadow-lg hover:shadow-pink-600/30
+             active:scale-95"
   onClick={() => navigate("/schedule")}
 >
   <Calendar className="w-4 h-4" />
