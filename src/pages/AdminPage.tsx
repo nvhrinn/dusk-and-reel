@@ -161,6 +161,15 @@ const AdminPage = () => {
   const usedKeys = keys.filter((k) => k.used_by);
   const unusedVip = vipCodes.filter((c) => !c.used_by);
   const usedVip = vipCodes.filter((c) => c.used_by);
+  // Statistik
+const totalUsers = users.length;
+
+// SESUAIKAN INI:
+// kalau pakai is_vip
+const totalVipUsers = users.filter((u) => u.is_vip).length;
+
+// ATAU kalau pakai role:
+// const totalVipUsers = users.filter((u) => u.role === "vip").length;
 
   return (
     <div className="min-h-screen bg-background pt-16 pb-8 px-4">
@@ -177,7 +186,28 @@ const AdminPage = () => {
   Logout
 </button>
         </div>
+{/* Stats */}
+<div className="grid grid-cols-2 gap-3 mb-6">
+  <div className="p-4 bg-card rounded-xl border border-border flex items-center gap-3">
+    <div className="p-2 rounded-lg bg-blue-500/10">
+      <Users className="w-5 h-5 text-blue-500" />
+    </div>
+    <div>
+      <p className="text-xs text-muted-foreground">Total Users</p>
+      <p className="text-lg font-bold text-foreground">{totalUsers}</p>
+    </div>
+  </div>
 
+  <div className="p-4 bg-card rounded-xl border border-amber-500/20 flex items-center gap-3">
+    <div className="p-2 rounded-lg bg-amber-500/10">
+      <Crown className="w-5 h-5 text-amber-500" />
+    </div>
+    <div>
+      <p className="text-xs text-muted-foreground">VIP Users</p>
+      <p className="text-lg font-bold text-amber-500">{totalVipUsers}</p>
+    </div>
+  </div>
+</div>
         {/* Tabs */}
         <div className="flex gap-2 mb-6 flex-wrap">
           {(["keys", "users", "vip"] as const).map((t) => (
