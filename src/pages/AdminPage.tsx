@@ -163,13 +163,9 @@ const AdminPage = () => {
   const usedVip = vipCodes.filter((c) => c.used_by);
   // Statistik
 const totalUsers = users.length;
-
-// SESUAIKAN INI:
-// kalau pakai is_vip
-const totalVipUsers = users.filter((u) => u.is_vip).length;
-
-// ATAU kalau pakai role:
-// const totalVipUsers = users.filter((u) => u.role === "vip").length;
+const totalVipUsers = users.filter(
+  (u) => u.is_vip === true || u.is_vip === 1 || u.is_vip === "true"
+).length;
 
   return (
     <div className="min-h-screen bg-background pt-16 pb-8 px-4">
