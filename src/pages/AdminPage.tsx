@@ -163,8 +163,8 @@ const AdminPage = () => {
   const usedVip = vipCodes.filter((c) => c.used_by);
   // Statistik
 const totalUsers = users.length;
-const totalVipUsers = users.filter(
-  (u) => String(u.is_vip).toLowerCase() === "true"
+const totalVipUsers = vipCodes.filter(
+  (c) => c.used_by !== null && c.used_by !== undefined
 ).length;
 
   return (
