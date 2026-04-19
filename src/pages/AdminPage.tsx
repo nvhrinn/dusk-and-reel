@@ -164,7 +164,7 @@ const AdminPage = () => {
   // Statistik
 const totalUsers = users.length;
 const totalVipUsers = users.filter(
-  (u) => u.is_vip === true || u.is_vip === 1 || u.is_vip === "true"
+  (u) => String(u.is_vip).toLowerCase() === "true"
 ).length;
 
   return (
